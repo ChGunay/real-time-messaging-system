@@ -34,20 +34,12 @@ const Joi = require('joi');
  *     UserUpdateRequest:
  *       type: object
  *       properties:
- *         firstName:
- *           type: string
- *           description: User's first name
- *         lastName:
- *           type: string
- *           description: User's last name
  *         username:
  *           type: string
  *           minLength: 3
  *           maxLength: 30
  *           description: Unique username
  *       example:
- *         firstName: John
- *         lastName: Doe
  *         username: johndoe_updated
  *     
  *     OnlineStats:
@@ -75,10 +67,10 @@ const Joi = require('joi');
 
 const router = express.Router();
 
-// Rate limiting for user endpoints
+
 const userLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100, 
   message: {
     success: false,
     message: 'Too many requests, please try again later'
@@ -87,7 +79,6 @@ const userLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Search rate limiting (more restrictive)
 const searchLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 20, // limit each IP to 20 search requests per minute
@@ -99,7 +90,7 @@ const searchLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Validation schemas
+
 const userListQuerySchema = paginationSchema.keys({
   search: Joi.string().trim().min(2).max(50).optional().messages({
     'string.min': 'Search query must be at least 2 characters long',
@@ -187,9 +178,24 @@ router.get('/list',
  *     security:
  *       - BearerAuth: []
  *     parameters:
- *       - $ref: '#/components/parameters/SearchParam'
- *       - $ref: '#/components/parameters/PageParam'
- *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 2
+ *           maxLength: 50
+ *         description: Search query for username, email, or name
+ *         example: "john"
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 20
+ *           default: 10
+ *         description: Number of results to return
+ *         example: 10
  *     responses:
  *       200:
  *         description: Search results
