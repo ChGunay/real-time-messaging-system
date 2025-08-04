@@ -3,6 +3,7 @@ const authRoutes = require('./authRoutes');
 const userRoutes = require('./userRoutes');
 const conversationRoutes = require('./conversationRoutes');
 const adminRoutes = require('./adminRoutes');
+const searchRoutes = require('./searchRoutes');
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ router.use('/auth', authRoutes);
 router.use('/user', userRoutes);
 router.use('/conversations', conversationRoutes);
 router.use('/admin', adminRoutes);
+router.use('/search', searchRoutes);
 
 
 router.get('/', (req, res) => {
@@ -57,6 +59,11 @@ router.get('/', (req, res) => {
         'GET /api/admin/messages/auto': 'Get auto messages',
         'GET /api/admin/templates': 'Get message templates',
         'GET /api/admin/users/online': 'Get online users'
+      },
+      search: {
+        'GET /api/search/messages': 'Search messages with Elasticsearch',
+        'GET /api/search/suggestions': 'Get message content suggestions',
+        'GET /api/search/statistics': 'Get search and message statistics'
       }
     },
     documentation: 'Visit /api-docs for detailed API documentation',
@@ -65,6 +72,39 @@ router.get('/', (req, res) => {
 });
 
 
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Basic health check
+ *     description: Simple health check endpoint that returns server status and uptime
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 status:
+ *                   type: string
+ *                   example: "healthy"
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                   example: "2023-12-01T10:30:00.000Z"
+ *                 uptime:
+ *                   type: number
+ *                   description: Server uptime in seconds
+ *                   example: 3600
+ *                 environment:
+ *                   type: string
+ *                   example: "development"
+ */
 router.get('/health', (req, res) => {
   res.json({
     success: true,
