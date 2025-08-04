@@ -244,6 +244,18 @@ class QueueWorker {
     }
   }
 
+  getNextRunTime() {
+    if (!this.cronJob) return null;
+    
+    try {
+      const cronParser = require('cron-parser');
+      const interval = cronParser.parseExpression(process.env.QUEUE_WORKER_CRON || '* * * * *');
+      return interval.next().toString();
+    } catch (error) {
+      logger.warn('Unable to calculate next run time:', error);
+      return 'Unknown';
+    }
+  }
 
   async getDetailedStats() {
     try {
@@ -258,7 +270,7 @@ class QueueWorker {
         ...this.stats,
         isRunning: this.isRunning,
         cronPattern: process.env.QUEUE_WORKER_CRON || '* * * * *',
-        nextRun: this.cronJob ? this.cronJob.nextDates().toString() : null,
+        nextRun: this.getNextRunTime(),
         messageQueues: {
           ready: readyCount,
           queued: queuedCount,
