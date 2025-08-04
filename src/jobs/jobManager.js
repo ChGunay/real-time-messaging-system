@@ -105,7 +105,7 @@ class JobManager {
       };
 
       
-      if (this.autoMessagePlanner) {
+      if (this.autoMessagePlanner && status.jobs?.autoMessagePlanner) {
         const plannerHealthy = status.jobs.autoMessagePlanner.isRunning;
         health.services.autoMessagePlanner = {
           healthy: plannerHealthy,
@@ -113,10 +113,16 @@ class JobManager {
           totalRuns: status.jobs.autoMessagePlanner.totalRuns
         };
         if (!plannerHealthy) health.healthy = false;
+      } else {
+        health.services.autoMessagePlanner = {
+          healthy: false,
+          status: 'not_initialized'
+        };
+        health.healthy = false;
       }
 
       
-      if (this.queueWorker) {
+      if (this.queueWorker && status.jobs?.queueWorker) {
         const workerHealthy = status.jobs.queueWorker.isRunning && 
                             !status.jobs.queueWorker.lastRunStats?.error;
         health.services.queueWorker = {
@@ -125,10 +131,16 @@ class JobManager {
           errorRate: status.jobs.queueWorker.errorRate || '0%'
         };
         if (!workerHealthy) health.healthy = false;
+      } else {
+        health.services.queueWorker = {
+          healthy: false,
+          status: 'not_initialized'
+        };
+        health.healthy = false;
       }
 
 
-      if (this.messageConsumer) {
+      if (this.messageConsumer && status.jobs?.messageConsumer) {
         const consumerHealthy = status.jobs.messageConsumer.isConsuming;
         health.services.messageConsumer = {
           healthy: consumerHealthy,
@@ -136,6 +148,12 @@ class JobManager {
           consumerCount: status.jobs.messageConsumer.stats?.consumerCount || 0
         };
         if (!consumerHealthy) health.healthy = false;
+      } else {
+        health.services.messageConsumer = {
+          healthy: false,
+          status: 'not_initialized'
+        };
+        health.healthy = false;
       }
 
       return health;
