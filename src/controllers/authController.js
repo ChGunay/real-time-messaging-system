@@ -1,7 +1,11 @@
-const { User } = require('../models');
-const { generateTokens, verifyRefreshToken, blacklistToken } = require('../utils/jwt');
-const { cacheService } = require('../services/redis');
-const logger = require('../utils/logger');
+const { User } = require("../models");
+const {
+  generateTokens,
+  verifyRefreshToken,
+  blacklistToken,
+} = require("../utils/jwt");
+const { cacheService } = require("../services/redis");
+const logger = require("../utils/logger");
 
 class AuthController {
   async register(req, res) {
@@ -9,22 +13,23 @@ class AuthController {
       const { username, email, password } = req.body;
 
       const existingUser = await User.findOne({
-        $or: [{ email }, { username }]
+        $or: [{ email }, { username }],
       });
 
       if (existingUser) {
         return res.status(409).json({
           success: false,
-          message: existingUser.email === email 
-            ? 'Email already registered' 
-            : 'Username already taken'
+          message:
+            existingUser.email === email
+              ? "Email already registered"
+              : "Username already taken",
         });
       }
 
       const user = new User({
         username,
         email,
-        password
+        password,
       });
 
       await user.save();
@@ -32,12 +37,12 @@ class AuthController {
       const { accessToken, refreshToken } = generateTokens({
         id: user._id,
         email: user.email,
-        username: user.username
+        username: user.username,
       });
 
       user.refreshTokens.push({
         token: refreshToken,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
       await user.save();
 
@@ -46,48 +51,47 @@ class AuthController {
         username: user.username,
         email: user.email,
         isActive: user.isActive,
-        lastSeen: user.lastSeen
+        lastSeen: user.lastSeen,
       });
 
       logger.info(`New user registered: ${user.email}`);
 
       res.status(201).json({
         success: true,
-        message: 'User registered successfully',
+        message: "User registered successfully",
         data: {
           user: {
             id: user._id,
             username: user.username,
             email: user.email,
             isActive: user.isActive,
-            createdAt: user.createdAt
+            createdAt: user.createdAt,
           },
           tokens: {
             accessToken,
-            refreshToken
-          }
-        }
+            refreshToken,
+          },
+        },
       });
-
     } catch (error) {
-      logger.error('Registration error:', error);
-      
-      if (error.name === 'ValidationError') {
-        const errors = Object.values(error.errors).map(err => ({
+      logger.error("Registration error:", error);
+
+      if (error.name === "ValidationError") {
+        const errors = Object.values(error.errors).map((err) => ({
           field: err.path,
-          message: err.message
+          message: err.message,
         }));
-        
+
         return res.status(400).json({
           success: false,
-          message: 'Validation failed',
-          errors
+          message: "Validation failed",
+          errors,
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Registration failed'
+        message: "Registration failed",
       });
     }
   }
@@ -96,19 +100,19 @@ class AuthController {
     try {
       const { email, password } = req.body;
 
-      const user = await User.findOne({ email }).select('+password');
+      const user = await User.findOne({ email }).select("+password");
 
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid email or password'
+          message: "Invalid email or password",
         });
       }
 
       if (!user.isActive) {
         return res.status(401).json({
           success: false,
-          message: 'Account is deactivated'
+          message: "Account is deactivated",
         });
       }
 
@@ -117,7 +121,7 @@ class AuthController {
       if (!isPasswordValid) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid email or password'
+          message: "Invalid email or password",
         });
       }
 
@@ -126,12 +130,12 @@ class AuthController {
       const { accessToken, refreshToken } = generateTokens({
         id: user._id,
         email: user.email,
-        username: user.username
+        username: user.username,
       });
 
       user.refreshTokens.push({
         token: refreshToken,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       user.lastSeen = new Date();
@@ -142,34 +146,33 @@ class AuthController {
         username: user.username,
         email: user.email,
         isActive: user.isActive,
-        lastSeen: user.lastSeen
+        lastSeen: user.lastSeen,
       });
 
       logger.info(`User logged in: ${user.email}`);
 
       res.json({
         success: true,
-        message: 'Login successful',
+        message: "Login successful",
         data: {
           user: {
             id: user._id,
             username: user.username,
             email: user.email,
             isActive: user.isActive,
-            lastSeen: user.lastSeen
+            lastSeen: user.lastSeen,
           },
           tokens: {
             accessToken,
-            refreshToken
-          }
-        }
+            refreshToken,
+          },
+        },
       });
-
     } catch (error) {
-      logger.error('Login error:', error);
+      logger.error("Login error:", error);
       res.status(500).json({
         success: false,
-        message: 'Login failed'
+        message: "Login failed",
       });
     }
   }
@@ -181,7 +184,7 @@ class AuthController {
       if (!refreshToken) {
         return res.status(401).json({
           success: false,
-          message: 'Refresh token is required'
+          message: "Refresh token is required",
         });
       }
 
@@ -192,18 +195,18 @@ class AuthController {
       if (!user || !user.isActive) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid refresh token'
+          message: "Invalid refresh token",
         });
       }
 
       const tokenExists = user.refreshTokens.some(
-        tokenObj => tokenObj.token === refreshToken
+        (tokenObj) => tokenObj.token === refreshToken,
       );
 
       if (!tokenExists) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid refresh token'
+          message: "Invalid refresh token",
         });
       }
 
@@ -212,15 +215,15 @@ class AuthController {
       const { accessToken, refreshToken: newRefreshToken } = generateTokens({
         id: user._id,
         email: user.email,
-        username: user.username
+        username: user.username,
       });
 
       user.refreshTokens = user.refreshTokens.filter(
-        tokenObj => tokenObj.token !== refreshToken
+        (tokenObj) => tokenObj.token !== refreshToken,
       );
       user.refreshTokens.push({
         token: newRefreshToken,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       await user.save();
@@ -229,28 +232,27 @@ class AuthController {
 
       res.json({
         success: true,
-        message: 'Tokens refreshed successfully',
+        message: "Tokens refreshed successfully",
         data: {
           tokens: {
             accessToken,
-            refreshToken: newRefreshToken
-          }
-        }
+            refreshToken: newRefreshToken,
+          },
+        },
       });
-
     } catch (error) {
-      logger.error('Token refresh error:', error);
-      
-      if (error.message === 'Invalid refresh token') {
+      logger.error("Token refresh error:", error);
+
+      if (error.message === "Invalid refresh token") {
         return res.status(401).json({
           success: false,
-          message: 'Invalid refresh token'
+          message: "Invalid refresh token",
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Token refresh failed'
+        message: "Token refresh failed",
       });
     }
   }
@@ -258,7 +260,7 @@ class AuthController {
   async logout(req, res) {
     try {
       const { refreshToken } = req.body;
-      const accessToken = req.token; 
+      const accessToken = req.token;
 
       if (accessToken) {
         await blacklistToken(accessToken);
@@ -268,7 +270,7 @@ class AuthController {
         const user = await User.findById(req.user.id);
         if (user) {
           user.refreshTokens = user.refreshTokens.filter(
-            tokenObj => tokenObj.token !== refreshToken
+            (tokenObj) => tokenObj.token !== refreshToken,
           );
           await user.save();
         }
@@ -278,18 +280,17 @@ class AuthController {
         await cacheService.invalidateUser(req.user.id);
       }
 
-      logger.info(`User logged out: ${req.user?.email || 'unknown'}`);
+      logger.info(`User logged out: ${req.user?.email || "unknown"}`);
 
       res.json({
         success: true,
-        message: 'Logout successful'
+        message: "Logout successful",
       });
-
     } catch (error) {
-      logger.error('Logout error:', error);
+      logger.error("Logout error:", error);
       res.status(500).json({
         success: false,
-        message: 'Logout failed'
+        message: "Logout failed",
       });
     }
   }
@@ -302,11 +303,11 @@ class AuthController {
 
       if (!userData) {
         const user = await User.findById(userId);
-        
+
         if (!user) {
           return res.status(404).json({
             success: false,
-            message: 'User not found'
+            message: "User not found",
           });
         }
 
@@ -317,7 +318,7 @@ class AuthController {
           isActive: user.isActive,
           lastSeen: user.lastSeen,
           createdAt: user.createdAt,
-          updatedAt: user.updatedAt
+          updatedAt: user.updatedAt,
         };
 
         await cacheService.cacheUser(userId, userData);
@@ -326,15 +327,14 @@ class AuthController {
       res.json({
         success: true,
         data: {
-          user: userData
-        }
+          user: userData,
+        },
       });
-
     } catch (error) {
-      logger.error('Get profile error:', error);
+      logger.error("Get profile error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to get profile'
+        message: "Failed to get profile",
       });
     }
   }
@@ -342,11 +342,11 @@ class AuthController {
   async logoutAll(req, res) {
     try {
       const user = await User.findById(req.user.id);
-      
+
       if (!user) {
         return res.status(404).json({
           success: false,
-          message: 'User not found'
+          message: "User not found",
         });
       }
 
@@ -363,14 +363,13 @@ class AuthController {
 
       res.json({
         success: true,
-        message: 'Logged out from all devices successfully'
+        message: "Logged out from all devices successfully",
       });
-
     } catch (error) {
-      logger.error('Logout all error:', error);
+      logger.error("Logout all error:", error);
       res.status(500).json({
         success: false,
-        message: 'Logout from all devices failed'
+        message: "Logout from all devices failed",
       });
     }
   }
@@ -379,28 +378,29 @@ class AuthController {
     try {
       const { currentPassword, newPassword } = req.body;
 
-      const user = await User.findById(req.user.id).select('+password');
-      
+      const user = await User.findById(req.user.id).select("+password");
+
       if (!user) {
         return res.status(404).json({
           success: false,
-          message: 'User not found'
+          message: "User not found",
         });
       }
 
-      const isCurrentPasswordValid = await user.comparePassword(currentPassword);
-      
+      const isCurrentPasswordValid =
+        await user.comparePassword(currentPassword);
+
       if (!isCurrentPasswordValid) {
         return res.status(400).json({
           success: false,
-          message: 'Current password is incorrect'
+          message: "Current password is incorrect",
         });
       }
 
       user.password = newPassword;
-      
+
       user.refreshTokens = [];
-      
+
       await user.save();
 
       if (req.token) {
@@ -413,14 +413,13 @@ class AuthController {
 
       res.json({
         success: true,
-        message: 'Password changed successfully. Please log in again.'
+        message: "Password changed successfully. Please log in again.",
       });
-
     } catch (error) {
-      logger.error('Change password error:', error);
+      logger.error("Change password error:", error);
       res.status(500).json({
         success: false,
-        message: 'Password change failed'
+        message: "Password change failed",
       });
     }
   }

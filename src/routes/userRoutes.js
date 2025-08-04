@@ -1,9 +1,14 @@
-const express = require('express');
-const userController = require('../controllers/userController');
-const { authenticate } = require('../middleware/auth');
-const { validateQuery, validateParams, paginationSchema, objectIdSchema } = require('../middleware/validation');
-const rateLimit = require('express-rate-limit');
-const Joi = require('joi');
+const express = require("express");
+const userController = require("../controllers/userController");
+const { authenticate } = require("../middleware/auth");
+const {
+  validateQuery,
+  validateParams,
+  paginationSchema,
+  objectIdSchema,
+} = require("../middleware/validation");
+const rateLimit = require("express-rate-limit");
+const Joi = require("joi");
 
 /**
  * @swagger
@@ -30,7 +35,7 @@ const Joi = require('joi');
  *         search: john
  *         page: 1
  *         limit: 10
- *     
+ *
  *     UserUpdateRequest:
  *       type: object
  *       properties:
@@ -41,7 +46,7 @@ const Joi = require('joi');
  *           description: Unique username
  *       example:
  *         username: johndoe_updated
- *     
+ *
  *     OnlineStats:
  *       type: object
  *       properties:
@@ -67,16 +72,15 @@ const Joi = require('joi');
 
 const router = express.Router();
 
-
 const userLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, 
+  max: 100,
   message: {
     success: false,
-    message: 'Too many requests, please try again later'
+    message: "Too many requests, please try again later",
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 const searchLimiter = rateLimit({
@@ -84,44 +88,38 @@ const searchLimiter = rateLimit({
   max: 20, // limit each IP to 20 search requests per minute
   message: {
     success: false,
-    message: 'Too many search requests, please try again later'
+    message: "Too many search requests, please try again later",
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
-
 
 const userListQuerySchema = paginationSchema.keys({
   search: Joi.string().trim().min(2).max(50).optional().messages({
-    'string.min': 'Search query must be at least 2 characters long',
-    'string.max': 'Search query cannot exceed 50 characters'
-  })
+    "string.min": "Search query must be at least 2 characters long",
+    "string.max": "Search query cannot exceed 50 characters",
+  }),
 });
 
 const searchQuerySchema = Joi.object({
   q: Joi.string().trim().min(2).max(50).required().messages({
-    'string.min': 'Search query must be at least 2 characters long',
-    'string.max': 'Search query cannot exceed 50 characters',
-    'any.required': 'Search query is required'
+    "string.min": "Search query must be at least 2 characters long",
+    "string.max": "Search query cannot exceed 50 characters",
+    "any.required": "Search query is required",
   }),
   limit: Joi.number().integer().min(1).max(20).default(10).messages({
-    'number.min': 'Limit must be at least 1',
-    'number.max': 'Limit cannot exceed 20'
-  })
+    "number.min": "Limit must be at least 1",
+    "number.max": "Limit cannot exceed 20",
+  }),
 });
 
 const updateProfileSchema = Joi.object({
-  username: Joi.string()
-    .alphanum()
-    .min(3)
-    .max(30)
-    .required()
-    .messages({
-      'string.alphanum': 'Username must contain only alphanumeric characters',
-      'string.min': 'Username must be at least 3 characters long',
-      'string.max': 'Username cannot exceed 30 characters',
-      'any.required': 'Username is required'
-    })
+  username: Joi.string().alphanum().min(3).max(30).required().messages({
+    "string.alphanum": "Username must contain only alphanumeric characters",
+    "string.min": "Username must be at least 3 characters long",
+    "string.max": "Username cannot exceed 30 characters",
+    "any.required": "Username is required",
+  }),
 });
 
 // Apply authentication to all routes
@@ -164,9 +162,10 @@ router.use(userLimiter);
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/list',
+router.get(
+  "/list",
   validateQuery(userListQuerySchema),
-  userController.getUserList
+  userController.getUserList,
 );
 
 /**
@@ -220,10 +219,11 @@ router.get('/list',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/search',
+router.get(
+  "/search",
   searchLimiter,
   validateQuery(searchQuerySchema),
-  userController.searchUsers
+  userController.searchUsers,
 );
 
 /**
@@ -249,9 +249,7 @@ router.get('/search',
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get('/online/stats',
-  userController.getOnlineStats
-);
+router.get("/online/stats", userController.getOnlineStats);
 
 /**
  * @swagger
@@ -293,10 +291,7 @@ router.get('/online/stats',
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id',
-  validateParams(objectIdSchema),
-  userController.getUserById
-);
+router.get("/:id", validateParams(objectIdSchema), userController.getUserById);
 
 /**
  * @swagger
@@ -335,9 +330,10 @@ router.get('/:id',
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/profile',
-  require('../middleware/validation').validate(updateProfileSchema),
-  userController.updateProfile
+router.put(
+  "/profile",
+  require("../middleware/validation").validate(updateProfileSchema),
+  userController.updateProfile,
 );
 
 module.exports = router;

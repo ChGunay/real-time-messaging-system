@@ -9,6 +9,7 @@ Production-ready real-time messaging system developed for Nodelabs Backend Devel
 - MongoDB (v5.0+)
 - Redis (v6.0+)
 - RabbitMQ (v3.8+)
+- Elasticsearch (v8.0+)
 
 ### Installation & Setup
 
@@ -32,11 +33,16 @@ Production-ready real-time messaging system developed for Nodelabs Backend Devel
    brew services start mongodb-community
    brew services start redis
    brew services start rabbitmq
+   brew services start elasticsearch 
    
    # Or manually
    mongod
    redis-server
    rabbitmq-server
+   elasticsearch  # Optional for search
+
+   #Or With Docker
+   docker compose up -d --build
    ```
 
 4. **Start the application**
@@ -66,6 +72,12 @@ Production-ready real-time messaging system developed for Nodelabs Backend Devel
 - 3-stage pipeline: Planning → Queuing → Delivery
 - Cron-based scheduling (02:00 daily)
 - RabbitMQ message queues
+
+### ✅ Advanced Search
+- Elasticsearch integration for message search
+- Full-text search with highlighting
+- Search suggestions and auto-complete
+- Message statistics and analytics
 
 ### ✅ Admin & Monitoring
 - System health monitoring
@@ -112,6 +124,11 @@ Production-ready real-time messaging system developed for Nodelabs Backend Devel
 - `GET /api/user/search` - Search users
 - `GET /api/user/online/stats` - Online statistics
 
+### Search
+- `GET /api/search/messages` - Search messages with Elasticsearch
+- `GET /api/search/suggestions` - Get message content suggestions
+- `GET /api/search/statistics` - Get search and message statistics
+
 ### Conversations & Messages
 - `GET /api/conversations` - User conversations
 - `POST /api/conversations` - Create conversation
@@ -123,6 +140,8 @@ Production-ready real-time messaging system developed for Nodelabs Backend Devel
 - `GET /api/admin/health` - Health check
 - `GET /api/admin/jobs/status` - Job status
 - `POST /api/admin/jobs/control/{job}/{action}` - Control jobs
+- `POST /api/admin/search/reindex` - Reindex messages in Elasticsearch
+- `GET /api/admin/search/stats` - Get search statistics
 
 ## 🔒 Security Features
 
@@ -149,6 +168,7 @@ MONGODB_URI=mongodb://localhost:27017/messaging_system
 PORT=3000
 REDIS_HOST=localhost
 RABBITMQ_URL=amqp://localhost:5672
+ELASTICSEARCH_URL=http://localhost:9200
 API_BASE_URL=https://api.yourdomain.com
 ```
 

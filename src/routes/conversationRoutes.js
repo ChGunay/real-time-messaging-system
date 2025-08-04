@@ -1,17 +1,20 @@
-const express = require('express');
-const conversationController = require('../controllers/conversationController');
-const { authenticate, authorizeConversationAccess } = require('../middleware/auth');
-const { 
-  validate, 
-  validateQuery, 
+const express = require("express");
+const conversationController = require("../controllers/conversationController");
+const {
+  authenticate,
+  authorizeConversationAccess,
+} = require("../middleware/auth");
+const {
+  validate,
+  validateQuery,
   validateParams,
-  paginationSchema, 
+  paginationSchema,
   objectIdSchema,
   createConversationSchema,
-  sendMessageSchema 
-} = require('../middleware/validation');
-const Joi = require('joi');
-const rateLimit = require('express-rate-limit');
+  sendMessageSchema,
+} = require("../middleware/validation");
+const Joi = require("joi");
+const rateLimit = require("express-rate-limit");
 
 /**
  * @swagger
@@ -28,7 +31,7 @@ const rateLimit = require('express-rate-limit');
  *           description: ID of the user to start conversation with
  *       example:
  *         participantId: 507f1f77bcf86cd799439011
- *     
+ *
  *     SendMessageRequest:
  *       type: object
  *       required:
@@ -47,7 +50,7 @@ const rateLimit = require('express-rate-limit');
  *       example:
  *         content: Hello, how are you?
  *         messageType: text
- *     
+ *
  *     ConversationList:
  *       type: object
  *       properties:
@@ -66,7 +69,7 @@ const rateLimit = require('express-rate-limit');
  *           totalPages: 0
  *           hasNext: false
  *           hasPrev: false
- *     
+ *
  *     MessageList:
  *       type: object
  *       properties:
@@ -95,10 +98,10 @@ const conversationLimiter = rateLimit({
   max: 200, // limit each IP to 200 requests per windowMs
   message: {
     success: false,
-    message: 'Too many conversation requests, please try again later'
+    message: "Too many conversation requests, please try again later",
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // Message sending rate limiting (more restrictive)
@@ -107,10 +110,10 @@ const messageLimiter = rateLimit({
   max: 30, // limit each IP to 30 messages per minute
   message: {
     success: false,
-    message: 'Too many messages, please slow down'
+    message: "Too many messages, please slow down",
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // Apply authentication to all routes
@@ -145,9 +148,10 @@ router.use(conversationLimiter);
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/',
+router.get(
+  "/",
   validateQuery(paginationSchema),
-  conversationController.getConversations
+  conversationController.getConversations,
 );
 
 /**
@@ -195,9 +199,10 @@ router.get('/',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/',
+router.post(
+  "/",
   validate(createConversationSchema),
-  conversationController.createConversation
+  conversationController.createConversation,
 );
 
 /**
@@ -246,9 +251,10 @@ router.post('/',
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id',
+router.get(
+  "/:id",
   validateParams(objectIdSchema),
-  conversationController.getConversation
+  conversationController.getConversation,
 );
 
 /**
@@ -299,10 +305,11 @@ router.get('/:id',
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id/messages',
+router.get(
+  "/:id/messages",
   validateParams(objectIdSchema),
   validateQuery(paginationSchema),
-  conversationController.getConversationMessages
+  conversationController.getConversationMessages,
 );
 
 /**
@@ -359,11 +366,12 @@ router.get('/:id/messages',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/:id/messages',
+router.post(
+  "/:id/messages",
   messageLimiter,
   validateParams(objectIdSchema),
   validate(sendMessageSchema),
-  conversationController.sendMessage
+  conversationController.sendMessage,
 );
 
 /**
@@ -415,12 +423,19 @@ router.post('/:id/messages',
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id/messages/:messageId/read',
-  validateParams(Joi.object({
-    id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
-    messageId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
-  })),
-  conversationController.markMessageAsRead
+router.put(
+  "/:id/messages/:messageId/read",
+  validateParams(
+    Joi.object({
+      id: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .required(),
+      messageId: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .required(),
+    }),
+  ),
+  conversationController.markMessageAsRead,
 );
 
 /**
@@ -464,9 +479,10 @@ router.put('/:id/messages/:messageId/read',
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id',
+router.delete(
+  "/:id",
   validateParams(objectIdSchema),
-  conversationController.deleteConversation
+  conversationController.deleteConversation,
 );
 
 module.exports = router;

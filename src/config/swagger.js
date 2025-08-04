@@ -1,12 +1,12 @@
-const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 
 const options = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'Real-Time Messaging System API',
-      version: '1.0.0',
+      title: "Real-Time Messaging System API",
+      version: "1.0.0",
       description: `        
         ## Özellikler
         - JWT tabanlı authentication
@@ -22,403 +22,403 @@ const options = {
         \`Authorization: Bearer YOUR_ACCESS_TOKEN\`
       `,
       contact: {
-        name: 'Nodelabs Case Study',
-        email: 'developer@nodelabs.com'
+        name: "Nodelabs Case Study",
+        email: "developer@nodelabs.com",
       },
       license: {
-        name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT'
-      }
+        name: "MIT",
+        url: "https://opensource.org/licenses/MIT",
+      },
     },
     servers: [
       {
-        url: process.env.NODE_ENV === 'production' 
-          ? (process.env.API_BASE_URL || 'https://api.example.com')
-          : `http://localhost:${process.env.PORT || 3000}`,
-        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
-      }
+        url:
+          process.env.NODE_ENV === "production"
+            ? process.env.API_BASE_URL || "https://api.example.com"
+            : `http://localhost:${process.env.PORT || 3000}`,
+        description:
+          process.env.NODE_ENV === "production"
+            ? "Production server"
+            : "Development server",
+      },
     ],
     components: {
       securitySchemes: {
         BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'JWT Authorization header using the Bearer scheme'
-        }
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "JWT Authorization header using the Bearer scheme",
+        },
       },
       schemas: {
         User: {
-          type: 'object',
+          type: "object",
           properties: {
             id: {
-              type: 'string',
-              description: 'User unique identifier'
+              type: "string",
+              description: "User unique identifier",
             },
             username: {
-              type: 'string',
-              description: 'User username'
+              type: "string",
+              description: "User username",
             },
             email: {
-              type: 'string',
-              format: 'email',
-              description: 'User email address'
+              type: "string",
+              format: "email",
+              description: "User email address",
             },
             firstName: {
-              type: 'string',
-              description: 'User first name'
+              type: "string",
+              description: "User first name",
             },
             lastName: {
-              type: 'string',
-              description: 'User last name'
+              type: "string",
+              description: "User last name",
             },
             isOnline: {
-              type: 'boolean',
-              description: 'User online status'
+              type: "boolean",
+              description: "User online status",
             },
             lastSeen: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Last seen timestamp'
+              type: "string",
+              format: "date-time",
+              description: "Last seen timestamp",
             },
             createdAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Account creation timestamp'
-            }
-          }
+              type: "string",
+              format: "date-time",
+              description: "Account creation timestamp",
+            },
+          },
         },
         Conversation: {
-          type: 'object',
+          type: "object",
           properties: {
             id: {
-              type: 'string',
-              description: 'Conversation unique identifier'
+              type: "string",
+              description: "Conversation unique identifier",
             },
             participants: {
-              type: 'array',
+              type: "array",
               items: {
-                $ref: '#/components/schemas/User'
+                $ref: "#/components/schemas/User",
               },
-              description: 'Conversation participants'
+              description: "Conversation participants",
             },
             lastMessage: {
-              $ref: '#/components/schemas/Message'
+              $ref: "#/components/schemas/Message",
             },
             unreadCount: {
-              type: 'number',
-              description: 'Unread message count for current user'
+              type: "number",
+              description: "Unread message count for current user",
             },
             createdAt: {
-              type: 'string',
-              format: 'date-time'
+              type: "string",
+              format: "date-time",
             },
             updatedAt: {
-              type: 'string',
-              format: 'date-time'
-            }
-          }
+              type: "string",
+              format: "date-time",
+            },
+          },
         },
         Message: {
-          type: 'object',
+          type: "object",
           properties: {
             id: {
-              type: 'string',
-              description: 'Message unique identifier'
+              type: "string",
+              description: "Message unique identifier",
             },
             conversation: {
-              type: 'string',
-              description: 'Conversation ID'
+              type: "string",
+              description: "Conversation ID",
             },
             sender: {
-              $ref: '#/components/schemas/User'
+              $ref: "#/components/schemas/User",
             },
             content: {
-              type: 'string',
-              description: 'Message content'
+              type: "string",
+              description: "Message content",
             },
             messageType: {
-              type: 'string',
-              enum: ['text', 'auto'],
-              description: 'Message type'
+              type: "string",
+              enum: ["text", "auto"],
+              description: "Message type",
             },
             readBy: {
-              type: 'array',
+              type: "array",
               items: {
-                type: 'object',
+                type: "object",
                 properties: {
                   user: {
-                    type: 'string',
-                    description: 'User ID'
+                    type: "string",
+                    description: "User ID",
                   },
                   readAt: {
-                    type: 'string',
-                    format: 'date-time'
-                  }
-                }
-              }
+                    type: "string",
+                    format: "date-time",
+                  },
+                },
+              },
             },
             createdAt: {
-              type: 'string',
-              format: 'date-time'
-            }
-          }
+              type: "string",
+              format: "date-time",
+            },
+          },
         },
         AutoMessage: {
-          type: 'object',
+          type: "object",
           properties: {
             id: {
-              type: 'string'
+              type: "string",
             },
             fromUser: {
-              type: 'string',
-              description: 'Sender user ID'
+              type: "string",
+              description: "Sender user ID",
             },
             toUser: {
-              type: 'string',
-              description: 'Recipient user ID'
+              type: "string",
+              description: "Recipient user ID",
             },
             content: {
-              type: 'string',
-              description: 'Auto message content'
+              type: "string",
+              description: "Auto message content",
             },
             category: {
-              type: 'string',
-              description: 'Message category'
+              type: "string",
+              description: "Message category",
             },
             status: {
-              type: 'string',
-              enum: ['planned', 'queued', 'sent', 'failed'],
-              description: 'Message status'
+              type: "string",
+              enum: ["planned", "queued", "sent", "failed"],
+              description: "Message status",
             },
             scheduledFor: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Scheduled delivery time'
+              type: "string",
+              format: "date-time",
+              description: "Scheduled delivery time",
             },
             sentAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Actual delivery time'
-            }
-          }
+              type: "string",
+              format: "date-time",
+              description: "Actual delivery time",
+            },
+          },
         },
         Error: {
-          type: 'object',
+          type: "object",
           properties: {
             success: {
-              type: 'boolean',
-              example: false
+              type: "boolean",
+              example: false,
             },
             message: {
-              type: 'string',
-              description: 'Error message'
+              type: "string",
+              description: "Error message",
             },
             code: {
-              type: 'string',
-              description: 'Error code'
+              type: "string",
+              description: "Error code",
             },
             errors: {
-              type: 'array',
+              type: "array",
               items: {
-                type: 'object'
+                type: "object",
               },
-              description: 'Validation errors (if any)'
-            }
-          }
+              description: "Validation errors (if any)",
+            },
+          },
         },
         Success: {
-          type: 'object',
+          type: "object",
           properties: {
             success: {
-              type: 'boolean',
-              example: true
+              type: "boolean",
+              example: true,
             },
             message: {
-              type: 'string',
-              description: 'Success message'
+              type: "string",
+              description: "Success message",
             },
             data: {
-              type: 'object',
-              description: 'Response data'
-            }
-          }
+              type: "object",
+              description: "Response data",
+            },
+          },
         },
         AuthTokens: {
-          type: 'object',
+          type: "object",
           properties: {
             accessToken: {
-              type: 'string',
-              description: 'JWT access token (15min expiry)'
+              type: "string",
+              description: "JWT access token (15min expiry)",
             },
             refreshToken: {
-              type: 'string',
-              description: 'JWT refresh token (7d expiry)'
-            }
-          }
+              type: "string",
+              description: "JWT refresh token (7d expiry)",
+            },
+          },
         },
         PaginationMeta: {
-          type: 'object',
+          type: "object",
           properties: {
             page: {
-              type: 'number',
-              description: 'Current page number'
+              type: "number",
+              description: "Current page number",
             },
             limit: {
-              type: 'number',
-              description: 'Items per page'
+              type: "number",
+              description: "Items per page",
             },
             total: {
-              type: 'number',
-              description: 'Total number of items'
+              type: "number",
+              description: "Total number of items",
             },
             totalPages: {
-              type: 'number',
-              description: 'Total number of pages'
+              type: "number",
+              description: "Total number of pages",
             },
             hasNext: {
-              type: 'boolean',
-              description: 'Has next page'
+              type: "boolean",
+              description: "Has next page",
             },
             hasPrev: {
-              type: 'boolean',
-              description: 'Has previous page'
-            }
-          }
-        }
+              type: "boolean",
+              description: "Has previous page",
+            },
+          },
+        },
       },
       responses: {
         UnauthorizedError: {
-          description: 'Authentication information is missing or invalid',
+          description: "Authentication information is missing or invalid",
           content: {
-            'application/json': {
+            "application/json": {
               schema: {
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error",
               },
               example: {
                 success: false,
-                message: 'Authentication required',
-                code: 'UNAUTHORIZED'
-              }
-            }
-          }
+                message: "Authentication required",
+                code: "UNAUTHORIZED",
+              },
+            },
+          },
         },
         ValidationError: {
-          description: 'Validation error',
+          description: "Validation error",
           content: {
-            'application/json': {
+            "application/json": {
               schema: {
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error",
               },
               example: {
                 success: false,
-                message: 'Validation failed',
-                code: 'VALIDATION_ERROR',
+                message: "Validation failed",
+                code: "VALIDATION_ERROR",
                 errors: [
                   {
-                    field: 'email',
-                    message: 'Email is required'
-                  }
-                ]
-              }
-            }
-          }
+                    field: "email",
+                    message: "Email is required",
+                  },
+                ],
+              },
+            },
+          },
         },
         RateLimitError: {
-          description: 'Rate limit exceeded',
+          description: "Rate limit exceeded",
           content: {
-            'application/json': {
+            "application/json": {
               schema: {
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error",
               },
               example: {
                 success: false,
-                message: 'Too many requests, please try again later',
-                code: 'RATE_LIMIT_EXCEEDED'
-              }
-            }
-          }
+                message: "Too many requests, please try again later",
+                code: "RATE_LIMIT_EXCEEDED",
+              },
+            },
+          },
         },
         InternalServerError: {
-          description: 'Internal server error',
+          description: "Internal server error",
           content: {
-            'application/json': {
+            "application/json": {
               schema: {
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error",
               },
               example: {
                 success: false,
-                message: 'Internal server error',
-                code: 'INTERNAL_ERROR'
-              }
-            }
-          }
-        }
+                message: "Internal server error",
+                code: "INTERNAL_ERROR",
+              },
+            },
+          },
+        },
       },
       parameters: {
         PageParam: {
-          name: 'page',
-          in: 'query',
-          description: 'Page number (default: 1)',
+          name: "page",
+          in: "query",
+          description: "Page number (default: 1)",
           schema: {
-            type: 'integer',
+            type: "integer",
             minimum: 1,
-            default: 1
-          }
+            default: 1,
+          },
         },
         LimitParam: {
-          name: 'limit',
-          in: 'query',
-          description: 'Items per page (default: 10, max: 100)',
+          name: "limit",
+          in: "query",
+          description: "Items per page (default: 10, max: 100)",
           schema: {
-            type: 'integer',
+            type: "integer",
             minimum: 1,
             maximum: 100,
-            default: 10
-          }
+            default: 10,
+          },
         },
         SearchParam: {
-          name: 'search',
-          in: 'query',
-          description: 'Search query',
+          name: "search",
+          in: "query",
+          description: "Search query",
           schema: {
-            type: 'string'
-          }
-        }
-      }
+            type: "string",
+          },
+        },
+      },
     },
     tags: [
       {
-        name: 'Authentication',
-        description: 'User authentication endpoints'
+        name: "Authentication",
+        description: "User authentication endpoints",
       },
       {
-        name: 'Users',
-        description: 'User management endpoints'
+        name: "Users",
+        description: "User management endpoints",
       },
       {
-        name: 'Conversations',
-        description: 'Conversation management endpoints'
+        name: "Conversations",
+        description: "Conversation management endpoints",
       },
       {
-        name: 'Messages',
-        description: 'Message management endpoints'
+        name: "Messages",
+        description: "Message management endpoints",
       },
       {
-        name: 'Admin',
-        description: 'Admin and monitoring endpoints'
+        name: "Admin",
+        description: "Admin and monitoring endpoints",
       },
       {
-        name: 'Health',
-        description: 'System health and monitoring'
-      }
-    ]
+        name: "Health",
+        description: "System health and monitoring",
+      },
+    ],
   },
-  apis: [
-    './src/routes/*.js',
-    './src/controllers/*.js',
-    './src/models/*.js'
-  ],
+  apis: ["./src/routes/*.js", "./src/controllers/*.js", "./src/models/*.js"],
 };
 
 const specs = swaggerJsdoc(options);
@@ -432,15 +432,15 @@ module.exports = {
       .swagger-ui .info .title { color: #2c3e50; }
       .swagger-ui .scheme-container { background: #f8f9fa; }
     `,
-    customSiteTitle: 'Real-Time Messaging API Docs',
-    customfavIcon: '/favicon.ico',
+    customSiteTitle: "Real-Time Messaging API Docs",
+    customfavIcon: "/favicon.ico",
     swaggerOptions: {
       persistAuthorization: true,
       displayRequestDuration: true,
-      docExpansion: 'list',
+      docExpansion: "list",
       filter: true,
       showRequestHeaders: true,
-      tryItOutEnabled: true
-    }
-  }
+      tryItOutEnabled: true,
+    },
+  },
 };

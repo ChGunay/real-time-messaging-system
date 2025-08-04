@@ -1,9 +1,13 @@
-const express = require('express');
-const adminController = require('../controllers/adminController');
-const { authenticate } = require('../middleware/auth');
-const { validateQuery, validateParams, paginationSchema } = require('../middleware/validation');
-const rateLimit = require('express-rate-limit');
-const Joi = require('joi');
+const express = require("express");
+const adminController = require("../controllers/adminController");
+const { authenticate } = require("../middleware/auth");
+const {
+  validateQuery,
+  validateParams,
+  paginationSchema,
+} = require("../middleware/validation");
+const rateLimit = require("express-rate-limit");
+const Joi = require("joi");
 
 /**
  * @swagger
@@ -51,7 +55,7 @@ const Joi = require('joi');
  *             consumer:
  *               type: string
  *               enum: [running, stopped]
- *       
+ *
  *     JobStatus:
  *       type: object
  *       properties:
@@ -84,7 +88,7 @@ const Joi = require('joi');
  *               enum: [running, stopped]
  *             messagesProcessed:
  *               type: number
- *       
+ *
  *     AutoMessageStats:
  *       type: object
  *       properties:
@@ -94,7 +98,7 @@ const Joi = require('joi');
  *             $ref: '#/components/schemas/AutoMessage'
  *         meta:
  *           $ref: '#/components/schemas/PaginationMeta'
- *       
+ *
  *     MessageTemplate:
  *       type: object
  *       properties:
@@ -121,32 +125,36 @@ const adminLimiter = rateLimit({
   max: 50, // limit each IP to 50 requests per windowMs
   message: {
     success: false,
-    message: 'Too many admin requests, please try again later'
+    message: "Too many admin requests, please try again later",
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 const controlLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 10, // limit each IP to 10 control operations per 5 minutes
   message: {
     success: false,
-    message: 'Too many control operations, please try again later'
+    message: "Too many control operations, please try again later",
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 const autoMessagesQuerySchema = paginationSchema.keys({
-  status: Joi.string().valid('pending', 'queued', 'sent', 'failed').optional(),
+  status: Joi.string().valid("pending", "queued", "sent", "failed").optional(),
   generationRound: Joi.date().iso().optional(),
-  senderId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
-  receiverId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional()
+  senderId: Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .optional(),
+  receiverId: Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .optional(),
 });
 
 const jobControlParamsSchema = Joi.object({
-  job: Joi.string().valid('planner', 'worker', 'consumer').required(),
-  action: Joi.string().valid('start', 'stop').required()
+  job: Joi.string().valid("planner", "worker", "consumer").required(),
+  action: Joi.string().valid("start", "stop").required(),
 });
 
 router.use(authenticate);
@@ -177,7 +185,7 @@ router.use(adminLimiter);
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/status', adminController.getSystemStatus);
+router.get("/status", adminController.getSystemStatus);
 
 /**
  * @swagger
@@ -213,7 +221,7 @@ router.get('/status', adminController.getSystemStatus);
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/health', adminController.healthCheck);
+router.get("/health", adminController.healthCheck);
 
 /**
  * @swagger
@@ -240,7 +248,7 @@ router.get('/health', adminController.healthCheck);
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/jobs/status', adminController.getJobStatus);
+router.get("/jobs/status", adminController.getJobStatus);
 
 /**
  * @swagger
@@ -276,7 +284,7 @@ router.get('/jobs/status', adminController.getJobStatus);
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/jobs/statistics', adminController.getJobStatistics);
+router.get("/jobs/statistics", adminController.getJobStatistics);
 
 /**
  * @swagger
@@ -298,9 +306,10 @@ router.get('/jobs/statistics', adminController.getJobStatistics);
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/jobs/trigger/planner', 
+router.post(
+  "/jobs/trigger/planner",
   controlLimiter,
-  adminController.triggerAutoMessagePlanner
+  adminController.triggerAutoMessagePlanner,
 );
 
 /**
@@ -323,9 +332,10 @@ router.post('/jobs/trigger/planner',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/jobs/trigger/worker', 
+router.post(
+  "/jobs/trigger/worker",
   controlLimiter,
-  adminController.triggerQueueWorker
+  adminController.triggerQueueWorker,
 );
 
 /**
@@ -367,10 +377,11 @@ router.post('/jobs/trigger/worker',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/jobs/control/:job/:action',
+router.post(
+  "/jobs/control/:job/:action",
   controlLimiter,
   validateParams(jobControlParamsSchema),
-  adminController.controlJob
+  adminController.controlJob,
 );
 
 /**
@@ -393,10 +404,7 @@ router.post('/jobs/control/:job/:action',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/jobs/restart',
-  controlLimiter,
-  adminController.restartJobs
-);
+router.post("/jobs/restart", controlLimiter, adminController.restartJobs);
 
 /**
  * @swagger
@@ -418,10 +426,7 @@ router.post('/jobs/restart',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/maintenance',
-  controlLimiter,
-  adminController.runMaintenance
-);
+router.post("/maintenance", controlLimiter, adminController.runMaintenance);
 
 /**
  * @swagger
@@ -477,9 +482,10 @@ router.post('/maintenance',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/messages/auto',
+router.get(
+  "/messages/auto",
   validateQuery(autoMessagesQuerySchema),
-  adminController.getAutoMessages
+  adminController.getAutoMessages,
 );
 
 /**
@@ -509,9 +515,7 @@ router.get('/messages/auto',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/templates',
-  adminController.getMessageTemplates
-);
+router.get("/templates", adminController.getMessageTemplates);
 
 /**
  * @swagger
@@ -548,9 +552,7 @@ router.get('/templates',
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.get('/users/online',
-  adminController.getOnlineUsers
-);
+router.get("/users/online", adminController.getOnlineUsers);
 
 /**
  * @swagger
@@ -581,9 +583,7 @@ router.get('/users/online',
  *       503:
  *         description: Elasticsearch not available
  */
-router.post('/search/reindex',
-  adminController.reindexMessages
-);
+router.post("/search/reindex", adminController.reindexMessages);
 
 /**
  * @swagger
@@ -616,8 +616,6 @@ router.post('/search/reindex',
  *       503:
  *         description: Elasticsearch not available
  */
-router.get('/search/stats',
-  adminController.getSearchStats
-);
+router.get("/search/stats", adminController.getSearchStats);
 
 module.exports = router;
