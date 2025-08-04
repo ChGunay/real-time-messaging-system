@@ -198,13 +198,26 @@ class AutoMessagePlanner {
   }
 
   
+  getNextRunTime() {
+    if (!this.cronJob) return null;
+    
+    try {
+      const cronParser = require('cron-parser');
+      const interval = cronParser.parseExpression(process.env.AUTO_MESSAGE_CRON || '0 2 * * *');
+      return interval.next().toString();
+    } catch (error) {
+      logger.warn('Unable to calculate next run time:', error);
+      return 'Unknown';
+    }
+  }
+
   getStats() {
     return {
       ...this.stats,
       isRunning: this.isRunning,
       lastRun: this.lastRun,
       cronPattern: process.env.AUTO_MESSAGE_CRON || '0 2 * * *',
-      nextRun: this.cronJob ? this.cronJob.nextDates().toString() : null
+      nextRun: this.getNextRunTime()
     };
   }
 
