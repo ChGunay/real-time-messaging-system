@@ -184,7 +184,7 @@ router.get('/status', adminController.getSystemStatus);
  * /api/admin/health:
  *   get:
  *     summary: Detailed health check
- *     tags: [Admin]
+ *     tags: [Health]
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -550,6 +550,74 @@ router.get('/templates',
  */
 router.get('/users/online',
   adminController.getOnlineUsers
+);
+
+/**
+ * @swagger
+ * /api/admin/search/reindex:
+ *   post:
+ *     summary: Reindex all messages in Elasticsearch
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Messages reindexed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/Success'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         totalProcessed:
+ *                           type: number
+ *                         timestamp:
+ *                           type: string
+ *                           format: date-time
+ *       503:
+ *         description: Elasticsearch not available
+ */
+router.post('/search/reindex',
+  adminController.reindexMessages
+);
+
+/**
+ * @swagger
+ * /api/admin/search/stats:
+ *   get:
+ *     summary: Get Elasticsearch search statistics
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Search statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/Success'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         statistics:
+ *                           type: object
+ *                         elasticsearch:
+ *                           type: object
+ *                         timestamp:
+ *                           type: string
+ *                           format: date-time
+ *       503:
+ *         description: Elasticsearch not available
+ */
+router.get('/search/stats',
+  adminController.getSearchStats
 );
 
 module.exports = router;

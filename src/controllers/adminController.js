@@ -2,6 +2,7 @@ const jobManager = require('../jobs/jobManager');
 const { AutoMessage, User, Message, Conversation } = require('../models');
 const { cacheService, userOnlineService } = require('../services/redis');
 const { messageProducer } = require('../services/rabbitmq');
+const { elasticsearchConnection, messageSearchService } = require('../services/elasticsearch');
 const logger = require('../utils/logger');
 const { getMessageStats } = require('../utils/messageTemplates');
 
@@ -48,11 +49,18 @@ class AdminController {
   healthCheck = async (req, res) => {
     try {
       const health = await jobManager.healthCheck();
+      const elasticsearchHealth = await elasticsearchConnection.healthCheck();
       
-      const status = health.healthy ? 200 : 503;
+   
+      health.services = health.services || {};
+      health.services.elasticsearch = elasticsearchHealth;
+      
+
+      const isHealthy = health.healthy;
+      const status = isHealthy ? 200 : 503;
       
       res.status(status).json({
-        success: health.healthy,
+        success: isHealthy,
         data: health
       });
 
@@ -430,6 +438,71 @@ class AdminController {
     } catch (error) {
       logger.error('Error getting queue stats:', error);
       return { error: error.message };
+    }
+  }
+
+  reindexMessages = async (req, res) => {
+    try {
+      if (!messageSearchService.isEnabled) {
+        return res.status(503).json({
+          success: false,
+          message: 'Elasticsearch is not available'
+        });
+      }
+
+      logger.info('Starting message reindexing process...');
+      
+      const totalProcessed = await messageSearchService.reindexAllMessages();
+      
+      logger.info('Message reindexing completed successfully');
+      
+      res.json({
+        success: true,
+        message: 'Message reindexing completed successfully',
+        data: {
+          totalProcessed,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      logger.error('Reindex messages error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reindex messages',
+        error: error.message
+      });
+    }
+  }
+
+  getSearchStats = async (req, res) => {
+    try {
+      if (!messageSearchService.isEnabled) {
+        return res.status(503).json({
+          success: false,
+          message: 'Elasticsearch is not available'
+        });
+      }
+
+      const stats = await messageSearchService.getSearchStatistics();
+      const elasticsearchHealth = await elasticsearchConnection.healthCheck();
+      
+      res.json({
+        success: true,
+        data: {
+          statistics: stats,
+          elasticsearch: elasticsearchHealth,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get search stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get search statistics',
+        error: error.message
+      });
     }
   }
 }

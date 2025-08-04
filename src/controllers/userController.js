@@ -93,9 +93,11 @@ class UserController {
 
   async getUserById(req, res) {
     try {
+
       const { id } = req.params;
 
-      if (id === req.user.id) {
+      //sonrasında  admin kontrolü eklemem lazım unutmaa
+      if (id.toString() === req.user.id.toString()) {
         return res.redirect('/api/auth/me');
       }
 

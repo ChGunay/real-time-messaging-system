@@ -1,5 +1,6 @@
 const { Conversation, Message, User } = require('../models');
 const { cacheService } = require('../services/redis');
+const { messageSearchService } = require('../services/elasticsearch');
 const logger = require('../utils/logger');
 
 class ConversationController {
@@ -329,6 +330,10 @@ class ConversationController {
       for (const participantId of conversation.participants) {
         await cacheService.invalidateUserConversations(participantId.toString());
       }
+
+      messageSearchService.indexMessage(message).catch(error => {
+        logger.warn('Failed to index message in Elasticsearch:', error.message);
+      });
 
       logger.info(`Message sent by ${req.user.username} in conversation ${conversationId}`);
 
