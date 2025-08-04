@@ -8,6 +8,7 @@ const { Server } = require('socket.io');
 const connectDatabase = require('./config/database');
 const redisConnection = require('./config/redis');
 const rabbitMQConnection = require('./config/rabbitmq');
+const elasticsearchConnection = require('./config/elasticsearch');
 const logger = require('./utils/logger');
 const { expressCorsConfig, socketCorsConfig } = require('./config/cors');
 
@@ -38,6 +39,7 @@ async function initializeConnections() {
     await connectDatabase();
     await redisConnection.connect();
     await rabbitMQConnection.connect();
+    await elasticsearchConnection.connect();
     logger.info('All connections initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize connections:', error);
@@ -109,6 +111,10 @@ setTimeout(async () => {
     socketHandler = initializeSocket(io);
     module.exports.socketHandler = socketHandler;
     
+    const { messageSearchService } = require('./services/elasticsearch');
+    await messageSearchService.initialize();
+    logger.info('Elasticsearch search service initialized');
+    
     const jobManager = require('./jobs/jobManager');
     await jobManager.init();
     logger.info('Job manager initialized successfully');
@@ -116,7 +122,7 @@ setTimeout(async () => {
   } catch (error) {
     logger.error('Error initializing Socket.IO and Job Manager:', error);
   }
-}, 3000); // Wait 3 seconds for connections to stabilize
+}, 3000); 
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerConfig));
 
@@ -179,6 +185,7 @@ const gracefulShutdown = async (signal) => {
     
     await redisConnection.disconnect();
     await rabbitMQConnection.disconnect();
+    await elasticsearchConnection.disconnect();
     
     logger.info('Graceful shutdown completed');
     process.exit(0);
