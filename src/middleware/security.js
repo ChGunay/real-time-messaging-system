@@ -81,7 +81,7 @@ const validateRequest = (req, res, next) => {
     /(\$where|\$ne|\$gt|\$lt|\$gte|\$lte|\$in|\$nin|\$regex)/i, 
     /<script[^>]*>.*?<\/script>/gi, 
     /javascript:/gi, 
-    /on\w+\s*=/gi, 
+    /\bon(click|load|error|focus|blur|change|submit|keydown|keyup|mouseover|mouseout)\s*=/gi, 
     /eval\s*\(/gi, 
     /function\s*\(/gi 
   ];
