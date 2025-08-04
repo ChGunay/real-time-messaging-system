@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Real-Time Messaging System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { background: #007bff; color: white; text-align: center; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        input, button, select { margin: 5px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
+        button.warning { background: #ffc107; color: #212529; }
+        button.warning:hover { background: #e0a800; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .status-card { padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .status-healthy { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .status-unhealthy { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .status-warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .stat-item { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; }
+        .stat-number { font-size: 24px; font-weight: bold; color: #007bff; }
+        .logs { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f8f9fa; font-family: monospace; font-size: 12px; }
+        .log-entry { margin: 2px 0; padding: 2px 5px; border-radius: 3px; }
+        .log-info { background: #e3f2fd; }
+        .log-success { background: #e8f5e8; }
+        .log-error { background: #ffebee; }
+        .log-warning { background: #fff3e0; }
+        .refresh-btn { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .badge-success { background: #28a745; color: white; }
+        .badge-danger { background: #dc3545; color: white; }
+        .badge-warning { background: #ffc107; color: #212529; }
+        .badge-info { background: #17a2b8; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛠️ Admin Panel</h1>
+            <p>Real-Time Messaging System Administration</p>
+        </div>
+
+        <button class="refresh-btn success" onclick="refreshAll()">🔄 Refresh All</button>
+        <button class="refresh-btn warning" onclick="testConnection()" style="top: 80px;">🔗 Test Connection</button>
+
+        <!-- Authentication -->
+        <div class="section">
+            <h3>🔐 Authentication</h3>
+            <div>
+                <input type="email" id="email" placeholder="Admin Email" />
+                <input type="password" id="password" placeholder="Password" />
+                <button onclick="login()">Login</button>
+            </div>
+            <div>
+                <input type="text" id="token" placeholder="Access Token" style="width: 400px;" />
+                <button onclick="setToken()">Set Token</button>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="section">
+            <h3>📊 System Status</h3>
+            <div id="systemStatus">Loading...</div>
+            <button onclick="getSystemStatus()">Refresh Status</button>
+            <button onclick="getHealthCheck()">Health Check</button>
+        </div>
+
+        <!-- Job Management -->
+        <div class="section">
+            <h3>⚙️ Job Management</h3>
+            <div class="grid">
+                <div>
+                    <h4>Job Control</h4>
+                    <div>
+                        <select id="jobSelect">
+                            <option value="planner">Auto Message Planner</option>
+                            <option value="worker">Queue Worker</option>
+                            <option value="consumer">Message Consumer</option>
+                        </select>
+                        <button class="success" onclick="startJob()">▶️ Start</button>
+                        <button class="danger" onclick="stopJob()">⏹️ Stop</button>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button class="warning" onclick="restartAllJobs()">🔄 Restart All Jobs</button>
+                    </div>
+                </div>
+                <div>
+                    <h4>Manual Triggers</h4>
+                    <button onclick="triggerPlanner()">🎯 Trigger Planner</button>
+                    <button onclick="triggerWorker()">🎯 Trigger Worker</button>
+                    <button class="warning" onclick="runMaintenance()">🧹 Run Maintenance</button>
+                </div>
+            </div>
+            <div id="jobStatus">Loading job status...</div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="section">
+            <h3>📈 Statistics</h3>
+            <div id="statistics">Loading statistics...</div>
+            <button onclick="getJobStatistics()">Refresh Statistics</button>
+        </div>
+
+        <!-- Auto Messages -->
+        <div class="section">
+            <h3>💬 Auto Messages</h3>
+            <div>
+                <select id="messageStatus">
+                    <option value="">All Messages</option>
+                    <option value="pending">Pending</option>
+                    <option value="queued">Queued</option>
+                    <option value="sent">Sent</option>
+                    <option value="failed">Failed</option>
+                </select>
+                <input type="number" id="messagePage" placeholder="Page" value="1" min="1" style="width: 80px;" />
+                <input type="number" id="messageLimit" placeholder="Limit" value="10" min="1" max="50" style="width: 80px;" />
+                <button onclick="getAutoMessages()">Load Messages</button>
+            </div>
+            <div id="autoMessages">Loading auto messages...</div>
+        </div>
+
+        <!-- Online Users -->
+        <div class="section">
+            <h3>👥 Online Users</h3>
+            <div id="onlineUsers">Loading online users...</div>
+            <button onclick="getOnlineUsers()">Refresh Online Users</button>
+        </div>
+
+        <!-- Message Templates -->
+        <div class="section">
+            <h3>📝 Message Templates</h3>
+            <div id="messageTemplates">Loading templates...</div>
+            <button onclick="getMessageTemplates()">Load Templates</button>
+        </div>
+
+        <!-- Logs -->
+        <div class="section">
+            <h3>📋 Activity Logs</h3>
+            <div id="logs" class="logs"></div>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+    </div>
+
+    <script>
+        let accessToken = '';
+
+        // Utility functions
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logClass = `log-${type}`;
+            logs.innerHTML += `<div class="log-entry ${logClass}">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Authentication
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    accessToken = data.data.tokens.accessToken;
+                    document.getElementById('token').value = accessToken;
+                    log('Login successful!', 'success');
+                } else {
+                    log('Login failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('Login error: ' + error.message, 'error');
+            }
+        }
+
+        function setToken() {
+            accessToken = document.getElementById('token').value;
+            log('Token set successfully', 'success');
+        }
+
+        // API call helper
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            try {
+                // Ensure endpoint starts with full URL
+                const fullUrl = endpoint.startsWith('http') ? endpoint : `http://localhost:3000${endpoint}`;
+                
+                const options = {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(fullUrl, options);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || `HTTP ${response.status}`);
+                }
+
+                return data;
+            } catch (error) {
+                log(`API Error (${endpoint}): ${error.message}`, 'error');
+                console.error('Full error details:', error);
+                throw error;
+            }
+        }
+
+        // System Status
+        async function getSystemStatus() {
+            try {
+                const data = await apiCall('/api/admin/status');
+                displaySystemStatus(data.data);
+                log('System status updated', 'success');
+            } catch (error) {
+                document.getElementById('systemStatus').innerHTML = '<div class="status-unhealthy">Error loading system status</div>';
+            }
+        }
+
+        async function getHealthCheck() {
+            try {
+                const data = await apiCall('/api/admin/health');
+                displayHealthCheck(data.data);
+                log('Health check completed', 'success');
+            } catch (error) {
+                log('Health check failed', 'error');
+            }
+        }
+
+        function displaySystemStatus(status) {
+            const html = `
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">${Math.round(status.uptime / 60)}m</div>
+                        <div>Uptime</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${status.database.collections.users}</div>
+                        <div>Users</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${status.database.collections.messages}</div>
+                        <div>Messages</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${status.database.collections.autoMessages}</div>
+                        <div>Auto Messages</div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <strong>Environment:</strong> ${status.environment}<br>
+                    <strong>Node Version:</strong> ${status.nodeVersion}<br>
+                    <strong>Last Updated:</strong> ${new Date(status.timestamp).toLocaleString()}
+                </div>
+            `;
+            document.getElementById('systemStatus').innerHTML = html;
+        }
+
+        function displayHealthCheck(health) {
+            const statusClass = health.healthy ? 'status-healthy' : 'status-unhealthy';
+            const statusText = health.healthy ? '✅ System Healthy' : '❌ System Issues Detected';
+            
+            let servicesHtml = '';
+            for (const [service, status] of Object.entries(health.services)) {
+                const serviceClass = status.healthy ? 'badge-success' : 'badge-danger';
+                const serviceStatus = status.healthy ? 'Healthy' : 'Unhealthy';
+                servicesHtml += `<span class="badge ${serviceClass}">${service}: ${serviceStatus}</span> `;
+            }
+            
+            const html = `
+                <div class="${statusClass}">
+                    <h4>${statusText}</h4>
+                    <div>${servicesHtml}</div>
+                    <small>Last Check: ${new Date(health.timestamp).toLocaleString()}</small>
+                </div>
+            `;
+            
+            document.getElementById('systemStatus').innerHTML += html;
+        }
+
+        // Job Management
+        async function getJobStatus() {
+            try {
+                const data = await apiCall('/api/admin/jobs/status');
+                displayJobStatus(data.data);
+                log('Job status updated', 'success');
+            } catch (error) {
+                document.getElementById('jobStatus').innerHTML = '<div class="status-unhealthy">Error loading job status</div>';
+            }
+        }
+
+        function displayJobStatus(jobData) {
+            const html = `
+                <h4>Job Status</h4>
+                <table>
+                    <tr>
+                        <th>Job</th>
+                        <th>Status</th>
+                        <th>Last Run</th>
+                        <th>Total Runs</th>
+                    </tr>
+                    <tr>
+                        <td>Auto Message Planner</td>
+                        <td><span class="badge ${jobData.jobs.autoMessagePlanner.isRunning ? 'badge-success' : 'badge-danger'}">
+                            ${jobData.jobs.autoMessagePlanner.isRunning ? 'Running' : 'Stopped'}
+                        </span></td>
+                        <td>${jobData.jobs.autoMessagePlanner.lastRun || 'Never'}</td>
+                        <td>${jobData.jobs.autoMessagePlanner.totalRuns || 0}</td>
+                    </tr>
+                    <tr>
+                        <td>Queue Worker</td>
+                        <td><span class="badge ${jobData.jobs.queueWorker.isRunning ? 'badge-success' : 'badge-danger'}">
+                            ${jobData.jobs.queueWorker.isRunning ? 'Running' : 'Stopped'}
+                        </span></td>
+                        <td>${jobData.jobs.queueWorker.lastRunStats?.timestamp || 'Never'}</td>
+                        <td>${jobData.jobs.queueWorker.totalRuns || 0}</td>
+                    </tr>
+                    <tr>
+                        <td>Message Consumer</td>
+                        <td><span class="badge ${jobData.jobs.messageConsumer.isConsuming ? 'badge-success' : 'badge-danger'}">
+                            ${jobData.jobs.messageConsumer.isConsuming ? 'Consuming' : 'Stopped'}
+                        </span></td>
+                        <td>Real-time</td>
+                        <td>-</td>
+                    </tr>
+                </table>
+            `;
+            document.getElementById('jobStatus').innerHTML = html;
+        }
+
+        async function startJob() {
+            const job = document.getElementById('jobSelect').value;
+            try {
+                await apiCall(`/api/admin/jobs/control/${job}/start`, 'POST');
+                log(`${job} started successfully`, 'success');
+                getJobStatus();
+            } catch (error) {
+                log(`Failed to start ${job}`, 'error');
+            }
+        }
+
+        async function stopJob() {
+            const job = document.getElementById('jobSelect').value;
+            try {
+                await apiCall(`/api/admin/jobs/control/${job}/stop`, 'POST');
+                log(`${job} stopped successfully`, 'warning');
+                getJobStatus();
+            } catch (error) {
+                log(`Failed to stop ${job}`, 'error');
+            }
+        }
+
+        async function triggerPlanner() {
+            try {
+                await apiCall('/api/admin/jobs/trigger/planner', 'POST');
+                log('Auto message planner triggered', 'success');
+            } catch (error) {
+                log('Failed to trigger planner', 'error');
+            }
+        }
+
+        async function triggerWorker() {
+            try {
+                await apiCall('/api/admin/jobs/trigger/worker', 'POST');
+                log('Queue worker triggered', 'success');
+            } catch (error) {
+                log('Failed to trigger worker', 'error');
+            }
+        }
+
+        async function restartAllJobs() {
+            try {
+                await apiCall('/api/admin/jobs/restart', 'POST');
+                log('All jobs restarted', 'success');
+                getJobStatus();
+            } catch (error) {
+                log('Failed to restart jobs', 'error');
+            }
+        }
+
+        async function runMaintenance() {
+            try {
+                const data = await apiCall('/api/admin/maintenance', 'POST');
+                log(`Maintenance completed: ${JSON.stringify(data.data)}`, 'success');
+            } catch (error) {
+                log('Maintenance failed', 'error');
+            }
+        }
+
+        // Statistics
+        async function getJobStatistics() {
+            try {
+                const data = await apiCall('/api/admin/jobs/statistics');
+                displayStatistics(data.data);
+                log('Statistics updated', 'success');
+            } catch (error) {
+                document.getElementById('statistics').innerHTML = '<div class="status-unhealthy">Error loading statistics</div>';
+            }
+        }
+
+        function displayStatistics(stats) {
+            const html = `
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.messageStatistics.pending}</div>
+                        <div>Pending</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.messageStatistics.ready}</div>
+                        <div>Ready</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.messageStatistics.queued}</div>
+                        <div>Queued</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.messageStatistics.failed}</div>
+                        <div>Failed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${stats.messageStatistics.total}</div>
+                        <div>Total</div>
+                    </div>
+                </div>
+                <h4>Recent Generation Rounds</h4>
+                <table>
+                    <tr><th>Date</th><th>Total</th><th>Sent</th><th>Queued</th><th>Failed</th></tr>
+                    ${stats.recentGenerationRounds.map(round => `
+                        <tr>
+                            <td>${new Date(round._id).toLocaleDateString()}</td>
+                            <td>${round.count}</td>
+                            <td>${round.sent}</td>
+                            <td>${round.queued}</td>
+                            <td>${round.failed}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+            document.getElementById('statistics').innerHTML = html;
+        }
+
+        // Auto Messages
+        async function getAutoMessages() {
+            try {
+                const status = document.getElementById('messageStatus').value;
+                const page = document.getElementById('messagePage').value || 1;
+                const limit = document.getElementById('messageLimit').value || 10;
+                
+                let url = `/api/admin/messages/auto?page=${page}&limit=${limit}`;
+                if (status) url += `&status=${status}`;
+                
+                const data = await apiCall(url);
+                displayAutoMessages(data.data);
+                log('Auto messages loaded', 'success');
+            } catch (error) {
+                document.getElementById('autoMessages').innerHTML = '<div class="status-unhealthy">Error loading auto messages</div>';
+            }
+        }
+
+        function displayAutoMessages(data) {
+            const html = `
+                <h4>Auto Messages (Page ${data.pagination.currentPage}/${data.pagination.totalPages})</h4>
+                <table>
+                    <tr>
+                        <th>ID</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Content</th>
+                        <th>Status</th>
+                        <th>Send Date</th>
+                    </tr>
+                    ${data.messages.map(msg => `
+                        <tr>
+                            <td>${msg._id.slice(-6)}</td>
+                            <td>${msg.sender.username}</td>
+                            <td>${msg.receiver.username}</td>
+                            <td>${msg.content.substring(0, 50)}...</td>
+                            <td><span class="badge badge-${msg.status === 'sent' ? 'success' : msg.status === 'failed' ? 'danger' : 'warning'}">${msg.status}</span></td>
+                            <td>${new Date(msg.sendDate).toLocaleString()}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+                <div>Total: ${data.pagination.totalCount} messages</div>
+            `;
+            document.getElementById('autoMessages').innerHTML = html;
+        }
+
+        // Online Users
+        async function getOnlineUsers() {
+            try {
+                const data = await apiCall('/api/admin/users/online');
+                displayOnlineUsers(data.data);
+                log('Online users updated', 'success');
+            } catch (error) {
+                document.getElementById('onlineUsers').innerHTML = '<div class="status-unhealthy">Error loading online users</div>';
+            }
+        }
+
+        function displayOnlineUsers(data) {
+            const html = `
+                <div class="stat-item">
+                    <div class="stat-number">${data.onlineCount}</div>
+                    <div>Users Online</div>
+                </div>
+                <h4>Sample Online Users</h4>
+                <table>
+                    <tr><th>Username</th><th>Email</th><th>Last Seen</th></tr>
+                    ${data.sampleUsers.map(user => `
+                        <tr>
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td>${new Date(user.lastSeen).toLocaleString()}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+            document.getElementById('onlineUsers').innerHTML = html;
+        }
+
+        // Message Templates
+        async function getMessageTemplates() {
+            try {
+                const data = await apiCall('/api/admin/templates');
+                displayMessageTemplates(data.data);
+                log('Message templates loaded', 'success');
+            } catch (error) {
+                document.getElementById('messageTemplates').innerHTML = '<div class="status-unhealthy">Error loading templates</div>';
+            }
+        }
+
+        function displayMessageTemplates(data) {
+            const html = `
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">${data.totalTemplates}</div>
+                        <div>Total Templates</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${data.categories}</div>
+                        <div>Categories</div>
+                    </div>
+                </div>
+                <h4>Category Breakdown</h4>
+                <table>
+                    <tr><th>Category</th><th>Count</th></tr>
+                    ${Object.entries(data.categoryBreakdown).map(([category, count]) => `
+                        <tr>
+                            <td>${category.replace('_', ' ').toUpperCase()}</td>
+                            <td>${count}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+            document.getElementById('messageTemplates').innerHTML = html;
+        }
+
+        // Refresh all data
+        async function refreshAll() {
+            log('Refreshing all data...', 'info');
+            try {
+                await Promise.all([
+                    getSystemStatus(),
+                    getJobStatus(),
+                    getJobStatistics(),
+                    getOnlineUsers()
+                ]);
+                log('All data refreshed successfully', 'success');
+            } catch (error) {
+                log('Some data failed to refresh', 'warning');
+            }
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            if (accessToken) {
+                getJobStatus();
+                getOnlineUsers();
+            }
+        }, 30000);
+
+        // Test connection function
+        async function testConnection() {
+            try {
+                log('Testing connection to server...', 'info');
+                const response = await fetch('http://localhost:3000/health');
+                const data = await response.json();
+                log(`Server is running: ${data.status}`, 'success');
+                
+                if (accessToken) {
+                    log('Testing admin API...', 'info');
+                    const adminResponse = await fetch('http://localhost:3000/api/admin/status', {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    });
+                    const adminData = await adminResponse.json();
+                    log(`Admin API: ${adminData.success ? 'OK' : 'Error'}`, adminData.success ? 'success' : 'error');
+                } else {
+                    log('No access token available', 'warning');
+                }
+            } catch (error) {
+                log(`Connection test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        log('Admin panel loaded. Please login first.', 'info');
+        log('Server URL: http://localhost:3000', 'info');
+        log('Make sure server is running and CORS is configured properly', 'info');
+    </script>
+</body>
+</html>

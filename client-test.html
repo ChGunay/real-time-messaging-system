@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Messaging Test Client</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        input, button, textarea { margin: 5px; padding: 8px; }
+        button { background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; }
+        .message { margin: 5px 0; padding: 5px; background: white; border-radius: 3px; }
+        .online-users { background: #e8f5e8; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-Time Messaging Test Client</h1>
+        
+        <!-- Authentication Section -->
+        <div class="section">
+            <h3>Authentication</h3>
+            <div>
+                <input type="text" id="username" placeholder="Username" />
+                <input type="email" id="email" placeholder="Email" />
+                <input type="password" id="password" placeholder="Password" />
+                <button onclick="register()">Register</button>
+                <button onclick="login()">Login</button>
+            </div>
+            <div>
+                <input type="text" id="token" placeholder="Access Token" style="width: 400px;" />
+                <button onclick="connectSocket()">Connect Socket</button>
+                <button onclick="disconnectSocket()">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Socket Status -->
+        <div class="section">
+            <h3>Socket Status</h3>
+            <div id="socketStatus">Disconnected</div>
+            <div id="onlineUsers" class="online-users"></div>
+        </div>
+
+        <!-- Messaging Section -->
+        <div class="section">
+            <h3>Messaging</h3>
+            <div>
+                <input type="text" id="conversationId" placeholder="Conversation ID" />
+                <button onclick="joinRoom()">Join Room</button>
+            </div>
+            <div>
+                <textarea id="messageContent" placeholder="Type your message..." rows="3" cols="50"></textarea>
+                <button onclick="sendMessage()">Send Message</button>
+            </div>
+            <div>
+                <button onclick="getOnlineUsers()">Get Online Users</button>
+                <button onclick="startTyping()">Start Typing</button>
+                <button onclick="stopTyping()">Stop Typing</button>
+            </div>
+        </div>
+
+        <!-- Messages Display -->
+        <div class="section">
+            <h3>Messages</h3>
+            <div id="messages" class="messages"></div>
+            <button onclick="clearMessages()">Clear Messages</button>
+        </div>
+
+        <!-- API Testing -->
+        <div class="section">
+            <h3>API Testing</h3>
+            <div>
+                <input type="text" id="participantId" placeholder="Participant ID" />
+                <button onclick="createConversation()">Create Conversation</button>
+            </div>
+            <div>
+                <button onclick="getConversations()">Get My Conversations</button>
+                <button onclick="getUserList()">Get User List</button>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="section">
+            <h3>Logs</h3>
+            <div id="logs" class="messages"></div>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let accessToken = '';
+
+        // Utility functions
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logs.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function addMessage(message, type = 'message') {
+            const messages = document.getElementById('messages');
+            const timestamp = new Date().toLocaleTimeString();
+            messages.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Authentication functions
+        async function register() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    accessToken = data.data.tokens.accessToken;
+                    document.getElementById('token').value = accessToken;
+                    log('Registration successful!', 'success');
+                } else {
+                    log('Registration failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('Registration error: ' + error.message, 'error');
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    accessToken = data.data.tokens.accessToken;
+                    document.getElementById('token').value = accessToken;
+                    log('Login successful!', 'success');
+                } else {
+                    log('Login failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('Login error: ' + error.message, 'error');
+            }
+        }
+
+        // Socket functions
+        function connectSocket() {
+            const token = document.getElementById('token').value || accessToken;
+            
+            if (!token) {
+                log('Please provide an access token', 'error');
+                return;
+            }
+
+            log('Attempting to connect with token: ' + token.substring(0, 20) + '...', 'info');
+
+            socket = io('http://localhost:3000', {
+                auth: { token },
+                transports: ['websocket', 'polling'],
+                timeout: 20000,
+                forceNew: true
+            });
+
+            socket.on('connect', () => {
+                document.getElementById('socketStatus').innerHTML = 'Connected';
+                log('Socket connected!', 'success');
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById('socketStatus').innerHTML = 'Disconnected';
+                log('Socket disconnected', 'info');
+            });
+
+            socket.on('connection_success', (data) => {
+                log('Connection success: ' + JSON.stringify(data), 'success');
+                document.getElementById('onlineUsers').innerHTML = `Online users: ${data.onlineUsersCount}`;
+            });
+
+            socket.on('connection_error', (data) => {
+                log('Connection error: ' + data.message, 'error');
+            });
+
+            socket.on('message_received', (data) => {
+                addMessage(`New message: ${data.message.content} (from: ${data.message.sender.username})`);
+            });
+
+            socket.on('user_online', (data) => {
+                log(`User ${data.username} came online`, 'info');
+            });
+
+            socket.on('user_offline', (data) => {
+                log(`User ${data.username} went offline`, 'info');
+            });
+
+            socket.on('user_typing', (data) => {
+                addMessage(`${data.username} is ${data.isTyping ? 'typing...' : 'stopped typing'}`, 'info');
+            });
+
+            socket.on('message_read', (data) => {
+                log(`Message ${data.messageId} was read by user ${data.readBy}`, 'info');
+            });
+
+            socket.on('online_users', (data) => {
+                document.getElementById('onlineUsers').innerHTML = `Online users: ${data.count}`;
+                log(`Online users: ${JSON.stringify(data.users.slice(0, 5))}`, 'info');
+            });
+
+                    socket.on('connect_error', (error) => {
+            log('Socket connection error: ' + error.message, 'error');
+            console.error('Socket connection error details:', error);
+        });
+        }
+
+        function disconnectSocket() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function joinRoom() {
+            const conversationId = document.getElementById('conversationId').value;
+            if (socket && conversationId) {
+                socket.emit('join_room', { conversationId });
+                log(`Joining room: ${conversationId}`, 'info');
+            }
+        }
+
+        function sendMessage() {
+            const conversationId = document.getElementById('conversationId').value;
+            const content = document.getElementById('messageContent').value;
+            
+            if (socket && conversationId && content) {
+                socket.emit('send_message', { conversationId, content });
+                document.getElementById('messageContent').value = '';
+                log(`Sending message: ${content}`, 'info');
+            }
+        }
+
+        function getOnlineUsers() {
+            if (socket) {
+                socket.emit('get_online_users');
+            }
+        }
+
+        function startTyping() {
+            const conversationId = document.getElementById('conversationId').value;
+            if (socket && conversationId) {
+                socket.emit('typing', { conversationId, isTyping: true });
+            }
+        }
+
+        function stopTyping() {
+            const conversationId = document.getElementById('conversationId').value;
+            if (socket && conversationId) {
+                socket.emit('typing', { conversationId, isTyping: false });
+            }
+        }
+
+        // API functions
+        async function createConversation() {
+            const participantId = document.getElementById('participantId').value;
+            const token = document.getElementById('token').value || accessToken;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/conversations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ participantId })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const convId = data.data.conversation._id;
+                    document.getElementById('conversationId').value = convId;
+                    log(`Conversation created: ${convId}`, 'success');
+                } else {
+                    log('Create conversation failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('API error: ' + error.message, 'error');
+            }
+        }
+
+        async function getConversations() {
+            const token = document.getElementById('token').value || accessToken;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/conversations', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`Found ${data.data.conversations.length} conversations`, 'success');
+                    if (data.data.conversations.length > 0) {
+                        const firstConv = data.data.conversations[0];
+                        document.getElementById('conversationId').value = firstConv._id;
+                        log(`First conversation: ${firstConv._id}`, 'info');
+                    }
+                } else {
+                    log('Get conversations failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('API error: ' + error.message, 'error');
+            }
+        }
+
+        async function getUserList() {
+            const token = document.getElementById('token').value || accessToken;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/user/list', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`Found ${data.data.users.length} users`, 'success');
+                    if (data.data.users.length > 0) {
+                        const firstUser = data.data.users[0];
+                        document.getElementById('participantId').value = firstUser.id;
+                        log(`First user: ${firstUser.username} (${firstUser.id})`, 'info');
+                    }
+                } else {
+                    log('Get users failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('API error: ' + error.message, 'error');
+            }
+        }
+
+        // Initialize
+        log('Test client loaded. Please register/login first, then connect socket.', 'info');
+    </script>
+</body>
+</html>
