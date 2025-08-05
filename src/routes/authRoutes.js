@@ -1,13 +1,13 @@
-const express = require("express");
-const authController = require("../controllers/authController");
-const { authenticate } = require("../middleware/auth");
+const express = require('express');
+const authController = require('../controllers/authController');
+const { authenticate } = require('../middleware/auth');
 const {
   validate,
   registerSchema,
   loginSchema,
-  refreshTokenSchema,
-} = require("../middleware/validation");
-const rateLimit = require("express-rate-limit");
+  refreshTokenSchema
+} = require('../middleware/validation');
+const rateLimit = require('express-rate-limit');
 
 /**
  * @swagger
@@ -98,10 +98,10 @@ const authLimiter = rateLimit({
   max: 10,
   message: {
     success: false,
-    message: "Too many authentication attempts, please try again later",
+    message: 'Too many authentication attempts, please try again later'
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: false
 });
 
 const strictAuthLimiter = rateLimit({
@@ -109,28 +109,28 @@ const strictAuthLimiter = rateLimit({
   max: 5, // limit each IP to 5 requests per windowMs for sensitive operations
   message: {
     success: false,
-    message: "Too many attempts, please try again later",
+    message: 'Too many attempts, please try again later'
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: false
 });
 
 // Change password validation schema
-const changePasswordSchema = require("joi").object({
-  currentPassword: require("joi").string().required().messages({
-    "any.required": "Current password is required",
+const changePasswordSchema = require('joi').object({
+  currentPassword: require('joi').string().required().messages({
+    'any.required': 'Current password is required'
   }),
-  newPassword: require("joi")
+  newPassword: require('joi')
     .string()
     .min(6)
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)"))
+    .pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)'))
     .required()
     .messages({
-      "string.min": "New password must be at least 6 characters long",
-      "string.pattern.base":
-        "New password must contain at least one uppercase letter, one lowercase letter, and one number",
-      "any.required": "New password is required",
-    }),
+      'string.min': 'New password must be at least 6 characters long',
+      'string.pattern.base':
+        'New password must contain at least one uppercase letter, one lowercase letter, and one number',
+      'any.required': 'New password is required'
+    })
 });
 
 // Public routes (no authentication required)
@@ -176,10 +176,10 @@ const changePasswordSchema = require("joi").object({
  *         $ref: '#/components/responses/RateLimitError'
  */
 router.post(
-  "/register",
+  '/register',
   authLimiter,
   validate(registerSchema),
-  authController.register,
+  authController.register
 );
 
 /**
@@ -222,7 +222,7 @@ router.post(
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post("/login", authLimiter, validate(loginSchema), authController.login);
+router.post('/login', authLimiter, validate(loginSchema), authController.login);
 
 /**
  * @swagger
@@ -260,10 +260,10 @@ router.post("/login", authLimiter, validate(loginSchema), authController.login);
  *         $ref: '#/components/responses/RateLimitError'
  */
 router.post(
-  "/refresh",
+  '/refresh',
   authLimiter,
   validate(refreshTokenSchema),
-  authController.refresh,
+  authController.refresh
 );
 
 // Protected routes (authentication required)
@@ -286,7 +286,7 @@ router.post(
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post("/logout", authenticate, authController.logout);
+router.post('/logout', authenticate, authController.logout);
 
 /**
  * @swagger
@@ -309,10 +309,10 @@ router.post("/logout", authenticate, authController.logout);
  *         $ref: '#/components/responses/RateLimitError'
  */
 router.post(
-  "/logout-all",
+  '/logout-all',
   authenticate,
   strictAuthLimiter,
-  authController.logoutAll,
+  authController.logoutAll
 );
 
 /**
@@ -338,7 +338,7 @@ router.post(
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get("/me", authenticate, authController.getProfile);
+router.get('/me', authenticate, authController.getProfile);
 
 /**
  * @swagger
@@ -373,11 +373,11 @@ router.get("/me", authenticate, authController.getProfile);
  *         $ref: '#/components/responses/RateLimitError'
  */
 router.put(
-  "/change-password",
+  '/change-password',
   authenticate,
   strictAuthLimiter,
   validate(changePasswordSchema),
-  authController.changePassword,
+  authController.changePassword
 );
 
 module.exports = router;

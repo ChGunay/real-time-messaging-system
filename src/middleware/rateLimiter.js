@@ -1,26 +1,26 @@
-const rateLimit = require("express-rate-limit");
-const RedisStore = require("rate-limit-redis");
-const redisConnection = require("../config/redis");
-const logger = require("../utils/logger");
-const { handleRateLimitError } = require("./errorHandler");
+const rateLimit = require('express-rate-limit');
+const RedisStore = require('rate-limit-redis');
+const redisConnection = require('../config/redis');
+const logger = require('../utils/logger');
+const { handleRateLimitError } = require('./errorHandler');
 
 const createRedisStore = () => {
   try {
     if (!redisConnection.client || !redisConnection.client.isReady) {
       logger.warn(
-        "Redis not connected yet, using memory store for rate limiting",
+        'Redis not connected yet, using memory store for rate limiting'
       );
       return undefined;
     }
 
     return new RedisStore({
       sendCommand: (...args) => redisConnection.getClient().sendCommand(args),
-      prefix: "rl:",
+      prefix: 'rl:'
     });
   } catch (error) {
     logger.warn(
-      "Redis store for rate limiting not available, using memory store:",
-      error.message,
+      'Redis store for rate limiting not available, using memory store:',
+      error.message
     );
     return undefined;
   }
@@ -32,8 +32,8 @@ const rateLimitConfigs = {
     max: 1000,
     message: {
       success: false,
-      message: "Too many requests from this IP, please try again later",
-      code: "RATE_LIMIT_EXCEEDED",
+      message: 'Too many requests from this IP, please try again later',
+      code: 'RATE_LIMIT_EXCEEDED'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -41,7 +41,7 @@ const rateLimitConfigs = {
     keyGenerator: (req) => {
       return req.ip || req.connection.remoteAddress;
     },
-    handler: handleRateLimitError,
+    handler: handleRateLimitError
   },
 
   auth: {
@@ -49,8 +49,8 @@ const rateLimitConfigs = {
     max: 10,
     message: {
       success: false,
-      message: "Too many authentication attempts, please try again later",
-      code: "AUTH_RATE_LIMIT_EXCEEDED",
+      message: 'Too many authentication attempts, please try again later',
+      code: 'AUTH_RATE_LIMIT_EXCEEDED'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -61,7 +61,7 @@ const rateLimitConfigs = {
       const ip = req.ip || req.connection.remoteAddress;
       return email ? `${ip}:${email}` : ip;
     },
-    handler: handleRateLimitError,
+    handler: handleRateLimitError
   },
 
   sensitive: {
@@ -69,8 +69,8 @@ const rateLimitConfigs = {
     max: 5,
     message: {
       success: false,
-      message: "Too many sensitive operations, please try again later",
-      code: "SENSITIVE_RATE_LIMIT_EXCEEDED",
+      message: 'Too many sensitive operations, please try again later',
+      code: 'SENSITIVE_RATE_LIMIT_EXCEEDED'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -80,7 +80,7 @@ const rateLimitConfigs = {
       const ip = req.ip || req.connection.remoteAddress;
       return userId ? `sensitive:${userId}` : `sensitive:${ip}`;
     },
-    handler: handleRateLimitError,
+    handler: handleRateLimitError
   },
 
   messaging: {
@@ -88,8 +88,8 @@ const rateLimitConfigs = {
     max: 30,
     message: {
       success: false,
-      message: "Too many messages sent, please slow down",
-      code: "MESSAGE_RATE_LIMIT_EXCEEDED",
+      message: 'Too many messages sent, please slow down',
+      code: 'MESSAGE_RATE_LIMIT_EXCEEDED'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -98,7 +98,7 @@ const rateLimitConfigs = {
       const userId = req.user?.id;
       return userId ? `messaging:${userId}` : req.ip;
     },
-    handler: handleRateLimitError,
+    handler: handleRateLimitError
   },
 
   api: {
@@ -106,13 +106,13 @@ const rateLimitConfigs = {
     max: 200,
     message: {
       success: false,
-      message: "Too many API requests, please try again later",
-      code: "API_RATE_LIMIT_EXCEEDED",
+      message: 'Too many API requests, please try again later',
+      code: 'API_RATE_LIMIT_EXCEEDED'
     },
     standardHeaders: true,
     legacyHeaders: false,
     store: createRedisStore(),
-    handler: handleRateLimitError,
+    handler: handleRateLimitError
   },
 
   search: {
@@ -120,13 +120,13 @@ const rateLimitConfigs = {
     max: 20,
     message: {
       success: false,
-      message: "Too many search requests, please try again later",
-      code: "SEARCH_RATE_LIMIT_EXCEEDED",
+      message: 'Too many search requests, please try again later',
+      code: 'SEARCH_RATE_LIMIT_EXCEEDED'
     },
     standardHeaders: true,
     legacyHeaders: false,
     store: createRedisStore(),
-    handler: handleRateLimitError,
+    handler: handleRateLimitError
   },
 
   admin: {
@@ -134,8 +134,8 @@ const rateLimitConfigs = {
     max: 50,
     message: {
       success: false,
-      message: "Too many admin requests, please try again later",
-      code: "ADMIN_RATE_LIMIT_EXCEEDED",
+      message: 'Too many admin requests, please try again later',
+      code: 'ADMIN_RATE_LIMIT_EXCEEDED'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -145,7 +145,7 @@ const rateLimitConfigs = {
       const ip = req.ip || req.connection.remoteAddress;
       return userId ? `admin:${userId}` : `admin:${ip}`;
     },
-    handler: handleRateLimitError,
+    handler: handleRateLimitError
   },
 
   upload: {
@@ -153,8 +153,8 @@ const rateLimitConfigs = {
     max: 10,
     message: {
       success: false,
-      message: "Too many file uploads, please try again later",
-      code: "UPLOAD_RATE_LIMIT_EXCEEDED",
+      message: 'Too many file uploads, please try again later',
+      code: 'UPLOAD_RATE_LIMIT_EXCEEDED'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -163,8 +163,8 @@ const rateLimitConfigs = {
       const userId = req.user?.id;
       return userId ? `upload:${userId}` : req.ip;
     },
-    handler: handleRateLimitError,
-  },
+    handler: handleRateLimitError
+  }
 };
 
 const rateLimiters = {};
@@ -176,7 +176,7 @@ const createCustomRateLimiter = (options) => {
   const config = {
     ...rateLimitConfigs.api,
     ...options,
-    store: options.useRedis !== false ? createRedisStore() : undefined,
+    store: options.useRedis !== false ? createRedisStore() : undefined
   };
 
   return rateLimit(config);
@@ -191,9 +191,9 @@ const socketRateLimiter = {
 
     if (connections >= maxConnections) {
       logger.warn(`Socket connection limit exceeded for IP: ${ip}`);
-      socket.emit("connection_error", {
-        message: "Too many connections from this IP",
-        code: "CONNECTION_LIMIT_EXCEEDED",
+      socket.emit('connection_error', {
+        message: 'Too many connections from this IP',
+        code: 'CONNECTION_LIMIT_EXCEEDED'
       });
       socket.disconnect(true);
       return false;
@@ -201,7 +201,7 @@ const socketRateLimiter = {
 
     socketRateLimiter.connections.set(ip, connections + 1);
 
-    socket.on("disconnect", () => {
+    socket.on('disconnect', () => {
       const currentConnections = socketRateLimiter.connections.get(ip) || 0;
       if (currentConnections <= 1) {
         socketRateLimiter.connections.delete(ip);
@@ -220,7 +220,7 @@ const socketRateLimiter = {
     const userMessages = socketRateLimiter.messageRateLimit.get(userId) || [];
 
     const validMessages = userMessages.filter(
-      (timestamp) => now - timestamp < windowMs,
+      (timestamp) => now - timestamp < windowMs
     );
 
     if (validMessages.length >= maxMessages) {
@@ -231,7 +231,7 @@ const socketRateLimiter = {
     socketRateLimiter.messageRateLimit.set(userId, validMessages);
 
     return true;
-  },
+  }
 };
 
 const rateLimitLogger = (req, res, next) => {
@@ -239,14 +239,14 @@ const rateLimitLogger = (req, res, next) => {
 
   res.send = function (data) {
     if (res.statusCode === 429) {
-      logger.warn("Rate limit hit:", {
+      logger.warn('Rate limit hit:', {
         ip: req.ip,
         url: req.originalUrl,
         method: req.method,
-        userAgent: req.get("User-Agent"),
+        userAgent: req.get('User-Agent'),
         userId: req.user?.id,
-        rateLimitRemaining: res.get("X-RateLimit-Remaining"),
-        rateLimitReset: res.get("X-RateLimit-Reset"),
+        rateLimitRemaining: res.get('X-RateLimit-Remaining'),
+        rateLimitReset: res.get('X-RateLimit-Reset')
       });
     }
 
@@ -256,17 +256,17 @@ const rateLimitLogger = (req, res, next) => {
   next();
 };
 
-const skipRateLimit = (req, res) => {
-  if (req.path === "/health" || req.path === "/api/health") {
+const skipRateLimit = (req, _res) => {
+  if (req.path === '/health' || req.path === '/api/health') {
     return true;
   }
 
-  const whitelistedIPs = process.env.RATE_LIMIT_WHITELIST?.split(",") || [];
+  const whitelistedIPs = process.env.RATE_LIMIT_WHITELIST?.split(',') || [];
   if (whitelistedIPs.includes(req.ip)) {
     return true;
   }
 
-  if (process.env.NODE_ENV === "test") {
+  if (process.env.NODE_ENV === 'test') {
     return true;
   }
 
@@ -288,13 +288,13 @@ const getRateLimitStatus = async (req, res) => {
         ip,
         userId,
         timestamp: new Date().toISOString(),
-        message: "Rate limit status check - detailed implementation needed",
-      },
+        message: 'Rate limit status check - detailed implementation needed'
+      }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to get rate limit status",
+      message: 'Failed to get rate limit status'
     });
   }
 };
@@ -305,5 +305,5 @@ module.exports = {
   socketRateLimiter,
   rateLimitLogger,
   getRateLimitStatus,
-  rateLimitConfigs,
+  rateLimitConfigs
 };

@@ -1,47 +1,47 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema(
   {
     conversation: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Conversation",
-      required: true,
+      ref: 'Conversation',
+      required: true
     },
     sender: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: 'User',
+      required: true
     },
     content: {
       type: String,
-      required: [true, "Message content is required"],
-      maxlength: [1000, "Message cannot exceed 1000 characters"],
+      required: [true, 'Message content is required'],
+      maxlength: [1000, 'Message cannot exceed 1000 characters']
     },
     messageType: {
       type: String,
-      enum: ["text", "image", "file", "system"],
-      default: "text",
+      enum: ['text', 'image', 'file', 'system'],
+      default: 'text'
     },
     status: {
       type: String,
-      enum: ["sent", "delivered", "read"],
-      default: "sent",
+      enum: ['sent', 'delivered', 'read'],
+      default: 'sent'
     },
     readBy: [
       {
         user: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
+          ref: 'User'
         },
         readAt: {
           type: Date,
-          default: Date.now,
-        },
-      },
+          default: Date.now
+        }
+      }
     ],
     replyTo: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
+      ref: 'Message'
     },
     attachments: [
       {
@@ -49,33 +49,33 @@ const messageSchema = new mongoose.Schema(
         originalName: String,
         mimetype: String,
         size: Number,
-        url: String,
-      },
+        url: String
+      }
     ],
     metadata: {
       editedAt: Date,
       editedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User'
       },
       deletedAt: Date,
       deletedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
+        ref: 'User'
+      }
     },
     isSystemMessage: {
       type: Boolean,
-      default: false,
+      default: false
     },
     isDeleted: {
       type: Boolean,
-      default: false,
-    },
+      default: false
+    }
   },
   {
-    timestamps: true,
-  },
+    timestamps: true
+  }
 );
 
 messageSchema.index({ conversation: 1, createdAt: -1 });
@@ -84,21 +84,21 @@ messageSchema.index({ status: 1 });
 messageSchema.index({ isDeleted: 1 });
 messageSchema.index({ createdAt: -1 });
 
-messageSchema.index({ content: "text" });
+messageSchema.index({ content: 'text' });
 
 messageSchema.statics.getConversationMessages = function (
   conversationId,
   page = 1,
-  limit = 50,
+  limit = 50
 ) {
   const skip = (page - 1) * limit;
 
   return this.find({
     conversation: conversationId,
-    isDeleted: false,
+    isDeleted: false
   })
-    .populate("sender", "username email")
-    .populate("replyTo", "content sender createdAt")
+    .populate('sender', 'username email')
+    .populate('replyTo', 'content sender createdAt')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -108,17 +108,17 @@ messageSchema.statics.searchMessages = function (
   conversationId,
   searchTerm,
   page = 1,
-  limit = 20,
+  limit = 20
 ) {
   const skip = (page - 1) * limit;
 
   return this.find({
     conversation: conversationId,
     isDeleted: false,
-    $text: { $search: searchTerm },
+    $text: { $search: searchTerm }
   })
-    .populate("sender", "username email")
-    .sort({ score: { $meta: "textScore" }, createdAt: -1 })
+    .populate('sender', 'username email')
+    .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
     .skip(skip)
     .limit(limit);
 };
@@ -128,7 +128,7 @@ messageSchema.methods.markAsRead = function (userId) {
 
   if (!existingRead) {
     this.readBy.push({ user: userId, readAt: new Date() });
-    this.status = "read";
+    this.status = 'read';
     return this.save();
   }
 
@@ -149,10 +149,10 @@ messageSchema.methods.softDelete = function (deleterId) {
   return this.save();
 };
 
-messageSchema.virtual("isEdited").get(function () {
+messageSchema.virtual('isEdited').get(function () {
   return !!this.metadata.editedAt;
 });
 
-messageSchema.set("toJSON", { virtuals: true });
+messageSchema.set('toJSON', { virtuals: true });
 
-module.exports = mongoose.model("Message", messageSchema);
+module.exports = mongoose.model('Message', messageSchema);

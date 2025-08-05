@@ -5,7 +5,7 @@ const logger = require('../../utils/logger');
 class SocketHandler {
   constructor(io) {
     this.io = io;
-    this.connectedUsers = new Map(); 
+    this.connectedUsers = new Map();
   }
 
   async handleConnection(socket) {
@@ -15,26 +15,20 @@ class SocketHandler {
 
       logger.info(`User connected: ${username} (${socket.id})`);
 
-
       this.connectedUsers.set(socket.id, userId);
 
-      
       await userOnlineService.setUserOnline(userId, socket.id);
 
-      
       socket.join(`user:${userId}`);
 
-      
       await this.joinUserConversations(socket, userId);
 
-      
       socket.broadcast.emit('user_online', {
         userId,
         username,
         timestamp: Date.now()
       });
 
-      
       await this.sendInitialData(socket, userId);
 
       logger.debug(`User ${username} successfully connected and setup completed`);
@@ -50,19 +44,16 @@ class SocketHandler {
   async handleDisconnection(socket) {
     try {
       const userId = this.connectedUsers.get(socket.id);
-      
+
       if (userId) {
         const username = socket.user?.username || 'Unknown';
-        
+
         logger.info(`User disconnected: ${username} (${socket.id})`);
 
-        
         this.connectedUsers.delete(socket.id);
 
-        
         await userOnlineService.setUserOffline(userId);
 
-        
         socket.broadcast.emit('user_offline', {
           userId,
           username,
@@ -78,13 +69,12 @@ class SocketHandler {
 
   async joinUserConversations(socket, userId) {
     try {
-      
+
       const conversations = await Conversation.find({
         participants: userId,
         isActive: true
       }).select('_id').lean();
 
-      
       for (const conversation of conversations) {
         socket.join(`conversation:${conversation._id}`);
       }
@@ -97,10 +87,9 @@ class SocketHandler {
 
   async sendInitialData(socket, userId) {
     try {
-      
+
       const onlineCount = await userOnlineService.getOnlineUsersCount();
 
-      
       socket.emit('connection_success', {
         message: 'Connected successfully',
         onlineUsersCount: onlineCount,
@@ -117,7 +106,6 @@ class SocketHandler {
       const { conversationId } = data;
       const userId = socket.userId;
 
-      
       const conversation = await Conversation.findOne({
         _id: conversationId,
         participants: userId,
@@ -131,7 +119,6 @@ class SocketHandler {
         return;
       }
 
-      
       socket.join(`conversation:${conversationId}`);
 
       socket.emit('join_room_success', {
@@ -155,7 +142,6 @@ class SocketHandler {
       const userId = socket.userId;
       const username = socket.user.username;
 
-
       if (!conversationId || !content || content.trim().length === 0) {
         socket.emit('send_message_error', {
           message: 'Conversation ID and content are required'
@@ -170,7 +156,6 @@ class SocketHandler {
         return;
       }
 
-      
       const conversation = await Conversation.findOne({
         _id: conversationId,
         participants: userId,
@@ -184,7 +169,6 @@ class SocketHandler {
         return;
       }
 
-      
       const message = new Message({
         conversation: conversationId,
         sender: userId,
@@ -195,10 +179,8 @@ class SocketHandler {
 
       await message.save();
 
-      
       await conversation.updateLastMessage(message._id);
 
-      
       await message.populate('sender', 'username email');
       if (replyTo) {
         await message.populate('replyTo', 'content sender createdAt');
@@ -219,7 +201,6 @@ class SocketHandler {
         updatedAt: message.updatedAt
       };
 
-      
       this.io.to(`conversation:${conversationId}`).emit('message_received', {
         message: messageData,
         timestamp: Date.now()
@@ -227,7 +208,6 @@ class SocketHandler {
 
       logger.info(`Message sent by ${username} in conversation ${conversationId}`);
 
-      
       socket.emit('message_sent', {
         messageId: message._id,
         timestamp: Date.now()
@@ -247,7 +227,6 @@ class SocketHandler {
       const userId = socket.userId;
       const username = socket.user.username;
 
-      
       const conversation = await Conversation.findOne({
         _id: conversationId,
         participants: userId,
@@ -258,7 +237,6 @@ class SocketHandler {
         return;
       }
 
-      
       socket.to(`conversation:${conversationId}`).emit('user_typing', {
         userId,
         username,
@@ -279,7 +257,6 @@ class SocketHandler {
       const { messageId } = data;
       const userId = socket.userId;
 
-      
       const message = await Message.findById(messageId)
         .populate('conversation', 'participants');
 
@@ -290,7 +267,6 @@ class SocketHandler {
         return;
       }
 
-      
       if (!message.conversation.participants.includes(userId)) {
         socket.emit('message_read_error', {
           message: 'Access denied'
@@ -298,10 +274,8 @@ class SocketHandler {
         return;
       }
 
-      
       await message.markAsRead(userId);
 
-      
       this.io.to(`conversation:${message.conversation._id}`).emit('message_read', {
         messageId: message._id,
         readBy: userId,
@@ -337,12 +311,10 @@ class SocketHandler {
     }
   }
 
-  
   getConnectedUsersCount() {
     return this.connectedUsers.size;
   }
 
-  
   getUserSockets(userId) {
     const sockets = [];
     for (const [socketId, connectedUserId] of this.connectedUsers.entries()) {
@@ -353,7 +325,6 @@ class SocketHandler {
     return sockets;
   }
 
-  
   async sendToUser(userId, event, data) {
     try {
       this.io.to(`user:${userId}`).emit(event, data);
@@ -362,7 +333,6 @@ class SocketHandler {
     }
   }
 
-  
   async sendToConversation(conversationId, event, data) {
     try {
       this.io.to(`conversation:${conversationId}`).emit(event, data);
@@ -371,7 +341,6 @@ class SocketHandler {
     }
   }
 
-  
   async broadcast(event, data) {
     try {
       this.io.emit(event, data);

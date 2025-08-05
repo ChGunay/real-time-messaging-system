@@ -1,58 +1,60 @@
-const helmet = require("helmet");
-const mongoSanitize = require("express-mongo-sanitize");
-const xss = require("xss-clean");
-const hpp = require("hpp");
-const logger = require("../utils/logger");
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
+const logger = require('../utils/logger');
 
 const securityConfig = {
   helmet: {
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
-      },
+        defaultSrc: ['\'self\''],
+        styleSrc: ['\'self\'', '\'unsafe-inline\''],
+        scriptSrc: ['\'self\''],
+        imgSrc: ['\'self\'', 'data:', 'https:'],
+        connectSrc: ['\'self\''],
+        fontSrc: ['\'self\''],
+        objectSrc: ['\'none\''],
+        mediaSrc: ['\'self\''],
+        frameSrc: ['\'none\'']
+      }
     },
     crossOriginEmbedderPolicy: false,
     hsts: {
       maxAge: 31536000,
       includeSubDomains: true,
-      preload: true,
-    },
+      preload: true
+    }
   },
 
   cors: {
     origin: function (origin, callback) {
-      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
-        "http://localhost:3000",
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+        'http://localhost:3000'
       ];
 
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        return callback(null, true);
+      }
 
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        logger.warn("CORS blocked:", { origin, allowedOrigins });
-        callback(new Error("Not allowed by CORS"));
+        logger.warn('CORS blocked:', { origin, allowedOrigins });
+        callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: [
-      "X-RateLimit-Remaining",
-      "X-RateLimit-Reset",
-      "X-RateLimit-Limit",
-    ],
+      'X-RateLimit-Remaining',
+      'X-RateLimit-Reset',
+      'X-RateLimit-Limit'
+    ]
   },
 
-  trustedProxies: process.env.TRUSTED_PROXIES?.split(",") || [],
+  trustedProxies: process.env.TRUSTED_PROXIES?.split(',') || []
 };
 
 const securityMiddleware = [
@@ -60,14 +62,14 @@ const securityMiddleware = [
 
   mongoSanitize({
     allowDots: true,
-    replaceWith: "_",
+    replaceWith: '_'
   }),
 
   xss(),
 
   hpp({
-    whitelist: ["page", "limit", "sort", "fields"],
-  }),
+    whitelist: ['page', 'limit', 'sort', 'fields']
+  })
 ];
 
 const validateRequest = (req, res, next) => {
@@ -77,7 +79,7 @@ const validateRequest = (req, res, next) => {
     /javascript:/gi,
     /\bon(click|load|error|focus|blur|change|submit|keydown|keyup|mouseover|mouseout)\s*=/gi,
     /eval\s*\(/gi,
-    /function\s*\(/gi,
+    /function\s*\(/gi
   ];
 
   const requestString =
@@ -85,20 +87,20 @@ const validateRequest = (req, res, next) => {
 
   for (const pattern of suspiciousPatterns) {
     if (pattern.test(requestString)) {
-      logger.warn("Suspicious request detected:", {
+      logger.warn('Suspicious request detected:', {
         ip: req.ip,
         url: req.originalUrl,
         method: req.method,
-        userAgent: req.get("User-Agent"),
+        userAgent: req.get('User-Agent'),
         pattern: pattern.toString(),
         body: req.body,
-        query: req.query,
+        query: req.query
       });
 
       return res.status(400).json({
         success: false,
-        message: "Invalid request detected",
-        code: "SUSPICIOUS_REQUEST",
+        message: 'Invalid request detected',
+        code: 'SUSPICIOUS_REQUEST'
       });
     }
   }
@@ -109,23 +111,23 @@ const validateRequest = (req, res, next) => {
 const ipFilter = (req, res, next) => {
   const clientIP = req.ip;
 
-  const blacklistedIPs = process.env.BLACKLISTED_IPS?.split(",") || [];
+  const blacklistedIPs = process.env.BLACKLISTED_IPS?.split(',') || [];
   if (blacklistedIPs.includes(clientIP)) {
-    logger.warn("Blacklisted IP blocked:", { ip: clientIP });
+    logger.warn('Blacklisted IP blocked:', { ip: clientIP });
     return res.status(403).json({
       success: false,
-      message: "Access denied",
-      code: "IP_BLOCKED",
+      message: 'Access denied',
+      code: 'IP_BLOCKED'
     });
   }
 
-  const whitelistedIPs = process.env.WHITELISTED_IPS?.split(",") || [];
+  const whitelistedIPs = process.env.WHITELISTED_IPS?.split(',') || [];
   if (whitelistedIPs.length > 0 && !whitelistedIPs.includes(clientIP)) {
-    logger.warn("Non-whitelisted IP blocked:", { ip: clientIP });
+    logger.warn('Non-whitelisted IP blocked:', { ip: clientIP });
     return res.status(403).json({
       success: false,
-      message: "Access denied",
-      code: "IP_NOT_WHITELISTED",
+      message: 'Access denied',
+      code: 'IP_NOT_WHITELISTED'
     });
   }
 
@@ -136,20 +138,20 @@ const requestSizeLimiter = (req, res, next) => {
   const maxSize = parseInt(process.env.MAX_REQUEST_SIZE) || 10 * 1024 * 1024;
 
   if (
-    req.headers["content-length"] &&
-    parseInt(req.headers["content-length"]) > maxSize
+    req.headers['content-length'] &&
+    parseInt(req.headers['content-length']) > maxSize
   ) {
-    logger.warn("Request size limit exceeded:", {
+    logger.warn('Request size limit exceeded:', {
       ip: req.ip,
-      size: req.headers["content-length"],
+      size: req.headers['content-length'],
       maxSize,
-      url: req.originalUrl,
+      url: req.originalUrl
     });
 
     return res.status(413).json({
       success: false,
-      message: "Request entity too large",
-      code: "REQUEST_TOO_LARGE",
+      message: 'Request entity too large',
+      code: 'REQUEST_TOO_LARGE'
     });
   }
 
@@ -157,18 +159,18 @@ const requestSizeLimiter = (req, res, next) => {
 };
 
 const additionalSecurityHeaders = (req, res, next) => {
-  res.removeHeader("X-Powered-By");
+  res.removeHeader('X-Powered-By');
 
   res.set({
-    "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
-    "X-XSS-Protection": "1; mode=block",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
-    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-    Pragma: "no-cache",
-    Expires: "0",
-    "Surrogate-Control": "no-store",
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+    'Surrogate-Control': 'no-store'
   });
 
   next();
@@ -176,12 +178,12 @@ const additionalSecurityHeaders = (req, res, next) => {
 
 const httpsRedirect = (req, res, next) => {
   if (
-    process.env.NODE_ENV === "production" &&
+    process.env.NODE_ENV === 'production' &&
     !req.secure &&
-    req.get("x-forwarded-proto") !== "https"
+    req.get('x-forwarded-proto') !== 'https'
   ) {
-    logger.info("Redirecting HTTP to HTTPS:", { url: req.url, ip: req.ip });
-    return res.redirect(301, `https://${req.get("host")}${req.url}`);
+    logger.info('Redirecting HTTP to HTTPS:', { url: req.url, ip: req.ip });
+    return res.redirect(301, `https://${req.get('host')}${req.url}`);
   }
   next();
 };
@@ -189,26 +191,26 @@ const httpsRedirect = (req, res, next) => {
 const securityLogger = (req, res, next) => {
   const startTime = Date.now();
 
-  logger.info("Request received:", {
+  logger.info('Request received:', {
     method: req.method,
     url: req.originalUrl,
     ip: req.ip,
-    userAgent: req.get("User-Agent"),
-    referer: req.get("Referer"),
-    timestamp: new Date().toISOString(),
+    userAgent: req.get('User-Agent'),
+    referer: req.get('Referer'),
+    timestamp: new Date().toISOString()
   });
 
-  res.on("finish", () => {
+  res.on('finish', () => {
     const duration = Date.now() - startTime;
-    const logLevel = res.statusCode >= 400 ? "warn" : "info";
+    const logLevel = res.statusCode >= 400 ? 'warn' : 'info';
 
-    logger[logLevel]("Request completed:", {
+    logger[logLevel]('Request completed:', {
       method: req.method,
       url: req.originalUrl,
       statusCode: res.statusCode,
       duration: `${duration}ms`,
       ip: req.ip,
-      userId: req.user?.id,
+      userId: req.user?.id
     });
   });
 
@@ -225,28 +227,28 @@ const bruteForceProtection = (req, res, next) => {
   const attempts = global.bruteForceAttempts.get(key) || [];
 
   const validAttempts = attempts.filter(
-    (timestamp) => now - timestamp < 15 * 60 * 1000,
+    (timestamp) => now - timestamp < 15 * 60 * 1000
   );
 
   if (validAttempts.length >= 10) {
-    logger.warn("Brute force attempt detected:", {
+    logger.warn('Brute force attempt detected:', {
       ip: req.ip,
-      attempts: validAttempts.length,
+      attempts: validAttempts.length
     });
     return res.status(429).json({
       success: false,
-      message: "Too many failed attempts, please try again later",
-      code: "BRUTE_FORCE_DETECTED",
+      message: 'Too many failed attempts, please try again later',
+      code: 'BRUTE_FORCE_DETECTED'
     });
   }
 
-  res.on("finish", () => {
-    if (req.path.includes("/login") && res.statusCode === 401) {
+  res.on('finish', () => {
+    if (req.path.includes('/login') && res.statusCode === 401) {
       validAttempts.push(now);
       global.bruteForceAttempts.set(key, validAttempts);
     }
 
-    if (req.path.includes("/login") && res.statusCode === 200) {
+    if (req.path.includes('/login') && res.statusCode === 200) {
       global.bruteForceAttempts.delete(key);
     }
   });
@@ -256,36 +258,36 @@ const bruteForceProtection = (req, res, next) => {
 
 const fileUploadSecurity = {
   allowedMimeTypes: [
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/webp",
-    "application/pdf",
-    "text/plain",
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'application/pdf',
+    'text/plain'
   ],
 
   maxFileSize: 5 * 1024 * 1024,
 
   sanitizeFilename: (filename) => {
     return filename
-      .replace(/[^a-zA-Z0-9.-]/g, "_")
-      .replace(/\.+/g, ".")
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/\.+/g, '.')
       .substr(0, 100);
   },
 
   validateFileType: (mimetype) => {
     return fileUploadSecurity.allowedMimeTypes.includes(mimetype);
-  },
+  }
 };
 
 const socketSecurity = {
   validateConnection: (socket, next) => {
     const ip = socket.handshake.address;
 
-    const blacklistedIPs = process.env.BLACKLISTED_IPS?.split(",") || [];
+    const blacklistedIPs = process.env.BLACKLISTED_IPS?.split(',') || [];
     if (blacklistedIPs.includes(ip)) {
-      logger.warn("Blacklisted IP attempted socket connection:", { ip });
-      return next(new Error("Connection denied"));
+      logger.warn('Blacklisted IP attempted socket connection:', { ip });
+      return next(new Error('Connection denied'));
     }
 
     next();
@@ -299,14 +301,14 @@ const socketSecurity = {
     const events = socketSecurity.eventRateLimit.get(key) || [];
 
     const validEvents = events.filter(
-      (timestamp) => now - timestamp < windowMs,
+      (timestamp) => now - timestamp < windowMs
     );
 
     if (validEvents.length >= maxEvents) {
-      logger.warn("Socket event rate limit exceeded:", {
+      logger.warn('Socket event rate limit exceeded:', {
         socketId: socket.id,
         eventName,
-        count: validEvents.length,
+        count: validEvents.length
       });
       return false;
     }
@@ -314,7 +316,7 @@ const socketSecurity = {
     validEvents.push(now);
     socketSecurity.eventRateLimit.set(key, validEvents);
     return true;
-  },
+  }
 };
 
 module.exports = {
@@ -328,5 +330,5 @@ module.exports = {
   securityLogger,
   bruteForceProtection,
   fileUploadSecurity,
-  socketSecurity,
+  socketSecurity
 };

@@ -10,14 +10,16 @@ class MessageSearchService {
   async initialize() {
     this.client = elasticsearchConnection.getClient();
     this.isEnabled = elasticsearchConnection.isHealthy();
-    
+
     if (!this.isEnabled) {
       logger.warn('Elasticsearch not available - search functionality disabled');
     }
   }
 
   async indexMessage(messageData) {
-    if (!this.isEnabled || !this.client) return false;
+    if (!this.isEnabled || !this.client) {
+      return false;
+    }
 
     try {
       const document = {
@@ -51,15 +53,23 @@ class MessageSearchService {
   }
 
   async updateMessage(messageId, updateData) {
-    if (!this.isEnabled || !this.client) return false;
+    if (!this.isEnabled || !this.client) {
+      return false;
+    }
 
     try {
       const updateDoc = {};
-      
-      if (updateData.content) updateDoc.content = updateData.content;
-      if (updateData.isDeleted !== undefined) updateDoc.isDeleted = updateData.isDeleted;
-      if (updateData.metadata) updateDoc.metadata = updateData.metadata;
-      
+
+      if (updateData.content) {
+        updateDoc.content = updateData.content;
+      }
+      if (updateData.isDeleted !== undefined) {
+        updateDoc.isDeleted = updateData.isDeleted;
+      }
+      if (updateData.metadata) {
+        updateDoc.metadata = updateData.metadata;
+      }
+
       updateDoc.updatedAt = new Date();
 
       await this.client.update({
@@ -79,7 +89,9 @@ class MessageSearchService {
   }
 
   async deleteMessage(messageId) {
-    if (!this.isEnabled || !this.client) return false;
+    if (!this.isEnabled || !this.client) {
+      return false;
+    }
 
     try {
       await this.client.update({
@@ -120,7 +132,6 @@ class MessageSearchService {
       sortOrder = 'desc'
     } = options;
 
-
     let actualSortBy = 'createdAt';
     if (sortBy === 'date') {
       actualSortBy = 'createdAt';
@@ -159,9 +170,13 @@ class MessageSearchService {
 
       if (dateFrom || dateTo) {
         const dateRange = {};
-        if (dateFrom) dateRange.gte = dateFrom;
-        if (dateTo) dateRange.lte = dateTo;
-        
+        if (dateFrom) {
+          dateRange.gte = dateFrom;
+        }
+        if (dateTo) {
+          dateRange.lte = dateTo;
+        }
+
         filter.push({
           range: {
             createdAt: dateRange
@@ -248,7 +263,9 @@ class MessageSearchService {
   }
 
   async getMessageSuggestions(prefix, conversationId, limit = 5) {
-    if (!this.isEnabled || !this.client) return [];
+    if (!this.isEnabled || !this.client) {
+      return [];
+    }
 
     try {
       const must = [
@@ -294,7 +311,7 @@ class MessageSearchService {
 
   async getStatistics(options) {
     const { period = 'month', conversationId, userId } = options;
-    
+
     if (!this.isEnabled || !this.client) {
       return {
         totalMessages: 0,
@@ -308,22 +325,22 @@ class MessageSearchService {
     try {
       const now = new Date();
       let startDate;
-      
+
       switch (period) {
-        case 'day':
-          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-          break;
-        case 'week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case 'month':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'year':
-          startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-          break;
-        default:
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      case 'day':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       }
 
       const filter = [
@@ -337,7 +354,7 @@ class MessageSearchService {
           }
         }
       ];
-      
+
       if (conversationId) {
         filter.push({ term: { conversationId } });
       }
@@ -395,8 +412,8 @@ class MessageSearchService {
         }
       });
 
-      const lastIndexed = lastIndexedResponse.hits.hits.length > 0 
-        ? lastIndexedResponse.hits.hits[0]._source.createdAt 
+      const lastIndexed = lastIndexedResponse.hits.hits.length > 0
+        ? lastIndexedResponse.hits.hits[0]._source.createdAt
         : null;
 
       return {
@@ -440,7 +457,9 @@ class MessageSearchService {
   }
 
   async getSearchStatistics(conversationId) {
-    if (!this.isEnabled || !this.client) return null;
+    if (!this.isEnabled || !this.client) {
+      return null;
+    }
 
     try {
       const filter = [{ term: { isDeleted: false } }];
@@ -502,7 +521,7 @@ class MessageSearchService {
       });
 
       const Message = require('../../models/Message');
-      
+
       let page = 1;
       const limit = 100;
       let totalProcessed = 0;
@@ -514,7 +533,9 @@ class MessageSearchService {
           .skip((page - 1) * limit)
           .limit(limit);
 
-        if (messages.length === 0) break;
+        if (messages.length === 0) {
+          break;
+        }
 
         const bulk = [];
         for (const message of messages) {

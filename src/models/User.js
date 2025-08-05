@@ -1,40 +1,40 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
     username: {
       type: String,
-      required: [true, "Username is required"],
+      required: [true, 'Username is required'],
       unique: true,
       trim: true,
-      minlength: [3, "Username must be at least 3 characters"],
-      maxlength: [30, "Username cannot exceed 30 characters"],
+      minlength: [3, 'Username must be at least 3 characters'],
+      maxlength: [30, 'Username cannot exceed 30 characters']
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: [true, 'Email is required'],
       unique: true,
       lowercase: true,
       trim: true,
       match: [
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        "Please enter a valid email",
-      ],
+        'Please enter a valid email'
+      ]
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters"],
-      select: false,
+      required: [true, 'Password is required'],
+      minlength: [6, 'Password must be at least 6 characters'],
+      select: false
     },
     isActive: {
       type: Boolean,
-      default: true,
+      default: true
     },
     lastSeen: {
       type: Date,
-      default: Date.now,
+      default: Date.now
     },
     refreshTokens: [
       {
@@ -42,22 +42,24 @@ const userSchema = new mongoose.Schema(
         createdAt: {
           type: Date,
           default: Date.now,
-          expires: 604800, // 7 days
-        },
-      },
-    ],
+          expires: 604800 // 7 days
+        }
+      }
+    ]
   },
   {
-    timestamps: true,
-  },
+    timestamps: true
+  }
 );
 
 userSchema.index({ email: 1 });
 userSchema.index({ username: 1 });
 userSchema.index({ isActive: 1 });
 
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) {
+    return next();
+  }
 
   try {
     const salt = await bcrypt.genSalt(12);
@@ -75,7 +77,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 userSchema.methods.cleanExpiredTokens = function () {
   this.refreshTokens = this.refreshTokens.filter(
     (tokenObj) =>
-      tokenObj.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000 > Date.now(),
+      tokenObj.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000 > Date.now()
   );
 };
 
@@ -84,4 +86,4 @@ userSchema.methods.updateLastSeen = function () {
   return this.save();
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model('User', userSchema);

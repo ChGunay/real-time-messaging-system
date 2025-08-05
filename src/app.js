@@ -14,13 +14,13 @@ const { expressCorsConfig, socketCorsConfig } = require('./config/cors');
 
 const { specs, swaggerUi, swaggerConfig } = require('./config/swagger');
 
-const { 
-  securityMiddleware, 
-  additionalSecurityHeaders, 
+const {
+  securityMiddleware,
+  additionalSecurityHeaders,
   securityLogger,
   httpsRedirect,
   validateRequest,
-  requestSizeLimiter 
+  requestSizeLimiter
 } = require('./middleware/security');
 const { rateLimiters, rateLimitLogger } = require('./middleware/rateLimiter');
 const { globalErrorHandler, handleUndefinedRoutes, handleRequestTimeout } = require('./middleware/errorHandler');
@@ -96,8 +96,8 @@ app.use(express.urlencoded({ extended: true }));
  *                   description: Server uptime in seconds
  */
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
@@ -110,19 +110,19 @@ setTimeout(async () => {
   try {
     socketHandler = initializeSocket(io);
     module.exports.socketHandler = socketHandler;
-    
+
     const { messageSearchService } = require('./services/elasticsearch');
     await messageSearchService.initialize();
     logger.info('Elasticsearch search service initialized');
-    
+
     const jobManager = require('./jobs/jobManager');
     await jobManager.init();
     logger.info('Job manager initialized successfully');
-    
+
   } catch (error) {
     logger.error('Error initializing Socket.IO and Job Manager:', error);
   }
-}, 3000); 
+}, 3000);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerConfig));
 
@@ -143,7 +143,7 @@ app.get('/metrics', (req, res) => {
 app.get('/health/detailed', (req, res) => {
   const report = systemMonitor.generateHealthReport();
   const status = report.status === 'healthy' ? 200 : report.status === 'warning' ? 200 : 503;
-  
+
   res.status(status).json({
     success: report.status !== 'critical',
     data: report
@@ -158,10 +158,10 @@ const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
   logger.info(`🚀 Server is running on port ${PORT}`);
-  logger.info(`🔒 Security features enabled`);
-  logger.info(`📊 System monitoring active`);
-  logger.info(`🛡️ Rate limiting configured`);
-  
+  logger.info('🔒 Security features enabled');
+  logger.info('📊 System monitoring active');
+  logger.info('🛡️ Rate limiting configured');
+
   logger.info('System Information:', {
     nodeVersion: process.version,
     platform: process.platform,
@@ -172,21 +172,21 @@ server.listen(PORT, () => {
 
 const gracefulShutdown = async (signal) => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
-  
+
   try {
     server.close(() => {
       logger.info('HTTP server closed');
     });
-    
+
     systemMonitor.stop();
-    
+
     const jobManager = require('./jobs/jobManager');
     await jobManager.destroy();
-    
+
     await redisConnection.disconnect();
     await rabbitMQConnection.disconnect();
     await elasticsearchConnection.disconnect();
-    
+
     logger.info('Graceful shutdown completed');
     process.exit(0);
   } catch (error) {
@@ -197,6 +197,6 @@ const gracefulShutdown = async (signal) => {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); 
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2'));
 
 module.exports = { app, server, io };

@@ -1,7 +1,7 @@
-const AutoMessagePlanner = require("./autoMessagePlanner");
-const QueueWorker = require("./queueWorker");
-const { messageConsumer } = require("../services/rabbitmq");
-const logger = require("../utils/logger");
+const AutoMessagePlanner = require('./autoMessagePlanner');
+const QueueWorker = require('./queueWorker');
+const { messageConsumer } = require('../services/rabbitmq');
+const logger = require('../utils/logger');
 
 class JobManager {
   constructor() {
@@ -13,7 +13,7 @@ class JobManager {
 
   async init() {
     try {
-      logger.info("Initializing job manager...");
+      logger.info('Initializing job manager...');
 
       this.autoMessagePlanner = new AutoMessagePlanner();
       this.autoMessagePlanner.init();
@@ -24,11 +24,11 @@ class JobManager {
       await this.messageConsumer.startConsuming();
 
       this.isInitialized = true;
-      logger.info("Job manager initialized successfully");
+      logger.info('Job manager initialized successfully');
 
       this.setupGracefulShutdown();
     } catch (error) {
-      logger.error("Error initializing job manager:", error);
+      logger.error('Error initializing job manager:', error);
       throw error;
     }
   }
@@ -36,15 +36,15 @@ class JobManager {
   setupGracefulShutdown() {
     const shutdown = async (signal) => {
       logger.info(
-        `Received ${signal}, shutting down job manager gracefully...`,
+        `Received ${signal}, shutting down job manager gracefully...`
       );
       await this.destroy();
       process.exit(0);
     };
 
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
-    process.on("SIGUSR2", shutdown);
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+    process.on('SIGUSR2', shutdown);
   }
 
   async getStatus() {
@@ -52,7 +52,7 @@ class JobManager {
       const [plannerStats, workerStats, consumerStats] = await Promise.all([
         this.autoMessagePlanner ? this.autoMessagePlanner.getStats() : null,
         this.queueWorker ? this.queueWorker.getDetailedStats() : null,
-        this.messageConsumer ? this.messageConsumer.getConsumerStats() : null,
+        this.messageConsumer ? this.messageConsumer.getConsumerStats() : null
       ]);
 
       return {
@@ -61,24 +61,24 @@ class JobManager {
         jobs: {
           autoMessagePlanner: {
             enabled: !!this.autoMessagePlanner,
-            ...plannerStats,
+            ...plannerStats
           },
           queueWorker: {
             enabled: !!this.queueWorker,
-            ...workerStats,
+            ...workerStats
           },
           messageConsumer: {
             enabled: !!this.messageConsumer,
-            ...consumerStats,
-          },
-        },
+            ...consumerStats
+          }
+        }
       };
     } catch (error) {
-      logger.error("Error getting job manager status:", error);
+      logger.error('Error getting job manager status:', error);
       return {
         isInitialized: this.isInitialized,
         error: error.message,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
     }
   }
@@ -90,7 +90,7 @@ class JobManager {
       const health = {
         healthy: true,
         timestamp: new Date().toISOString(),
-        services: {},
+        services: {}
       };
 
       if (this.autoMessagePlanner && status.jobs?.autoMessagePlanner) {
@@ -98,13 +98,15 @@ class JobManager {
         health.services.autoMessagePlanner = {
           healthy: plannerHealthy,
           lastRun: status.jobs.autoMessagePlanner.lastRun,
-          totalRuns: status.jobs.autoMessagePlanner.totalRuns,
+          totalRuns: status.jobs.autoMessagePlanner.totalRuns
         };
-        if (!plannerHealthy) health.healthy = false;
+        if (!plannerHealthy) {
+          health.healthy = false;
+        }
       } else {
         health.services.autoMessagePlanner = {
           healthy: false,
-          status: "not_initialized",
+          status: 'not_initialized'
         };
         health.healthy = false;
       }
@@ -116,13 +118,15 @@ class JobManager {
         health.services.queueWorker = {
           healthy: workerHealthy,
           totalRuns: status.jobs.queueWorker.totalRuns,
-          errorRate: status.jobs.queueWorker.errorRate || "0%",
+          errorRate: status.jobs.queueWorker.errorRate || '0%'
         };
-        if (!workerHealthy) health.healthy = false;
+        if (!workerHealthy) {
+          health.healthy = false;
+        }
       } else {
         health.services.queueWorker = {
           healthy: false,
-          status: "not_initialized",
+          status: 'not_initialized'
         };
         health.healthy = false;
       }
@@ -132,85 +136,87 @@ class JobManager {
         health.services.messageConsumer = {
           healthy: consumerHealthy,
           messageCount: status.jobs.messageConsumer.stats?.messageCount || 0,
-          consumerCount: status.jobs.messageConsumer.stats?.consumerCount || 0,
+          consumerCount: status.jobs.messageConsumer.stats?.consumerCount || 0
         };
-        if (!consumerHealthy) health.healthy = false;
+        if (!consumerHealthy) {
+          health.healthy = false;
+        }
       } else {
         health.services.messageConsumer = {
           healthy: false,
-          status: "not_initialized",
+          status: 'not_initialized'
         };
         health.healthy = false;
       }
 
       return health;
     } catch (error) {
-      logger.error("Error in job manager health check:", error);
+      logger.error('Error in job manager health check:', error);
       return {
         healthy: false,
         error: error.message,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
     }
   }
 
   async triggerAutoMessagePlanning() {
     if (!this.autoMessagePlanner) {
-      throw new Error("Auto message planner not initialized");
+      throw new Error('Auto message planner not initialized');
     }
 
-    logger.info("Manual trigger: Auto message planning");
+    logger.info('Manual trigger: Auto message planning');
     await this.autoMessagePlanner.runManually();
   }
 
   async triggerQueueProcessing() {
     if (!this.queueWorker) {
-      throw new Error("Queue worker not initialized");
+      throw new Error('Queue worker not initialized');
     }
 
-    logger.info("Manual trigger: Queue processing");
+    logger.info('Manual trigger: Queue processing');
     await this.queueWorker.runManually();
   }
 
   startAutoMessagePlanner() {
     if (this.autoMessagePlanner) {
       this.autoMessagePlanner.start();
-      logger.info("Auto message planner started");
+      logger.info('Auto message planner started');
     }
   }
 
   stopAutoMessagePlanner() {
     if (this.autoMessagePlanner) {
       this.autoMessagePlanner.stop();
-      logger.info("Auto message planner stopped");
+      logger.info('Auto message planner stopped');
     }
   }
 
   startQueueWorker() {
     if (this.queueWorker) {
       this.queueWorker.start();
-      logger.info("Queue worker started");
+      logger.info('Queue worker started');
     }
   }
 
   stopQueueWorker() {
     if (this.queueWorker) {
       this.queueWorker.stop();
-      logger.info("Queue worker stopped");
+      logger.info('Queue worker stopped');
     }
   }
 
   async startMessageConsumer() {
     if (this.messageConsumer) {
       await this.messageConsumer.startConsuming();
-      logger.info("Message consumer started");
+      logger.info('Message consumer started');
     }
   }
 
   async stopMessageConsumer() {
     if (this.messageConsumer) {
       await this.messageConsumer.stopConsuming();
-      logger.info("Message consumer stopped");
+      logger.info('Message consumer stopped');
     }
   }
 
@@ -221,7 +227,7 @@ class JobManager {
         readyMessages,
         queuedMessages,
         failedMessages,
-        generationRounds,
+        generationRounds
       ] = await Promise.all([
         this.autoMessagePlanner
           ? this.autoMessagePlanner.getPendingMessagesCount()
@@ -231,7 +237,7 @@ class JobManager {
         this.queueWorker ? this.queueWorker.getFailedMessagesCount() : 0,
         this.autoMessagePlanner
           ? this.autoMessagePlanner.getGenerationRounds(5)
-          : [],
+          : []
       ]);
 
       return {
@@ -241,27 +247,27 @@ class JobManager {
           queued: queuedMessages,
           failed: failedMessages,
           total:
-            pendingMessages + readyMessages + queuedMessages + failedMessages,
+            pendingMessages + readyMessages + queuedMessages + failedMessages
         },
         recentGenerationRounds: generationRounds,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
     } catch (error) {
-      logger.error("Error getting job statistics:", error);
+      logger.error('Error getting job statistics:', error);
       return {
         error: error.message,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
     }
   }
 
   async performMaintenance() {
     try {
-      logger.info("Starting job manager maintenance...");
+      logger.info('Starting job manager maintenance...');
 
       const results = {
         retriedFailedMessages: 0,
-        errors: [],
+        errors: []
       };
 
       if (this.queueWorker) {
@@ -270,22 +276,22 @@ class JobManager {
             await this.queueWorker.retryFailedMessages(50);
         } catch (error) {
           results.errors.push(
-            `Queue worker maintenance error: ${error.message}`,
+            `Queue worker maintenance error: ${error.message}`
           );
         }
       }
 
-      logger.info("Job manager maintenance completed:", results);
+      logger.info('Job manager maintenance completed:', results);
       return results;
     } catch (error) {
-      logger.error("Error in job manager maintenance:", error);
+      logger.error('Error in job manager maintenance:', error);
       throw error;
     }
   }
 
   async restart() {
     try {
-      logger.info("Restarting job manager...");
+      logger.info('Restarting job manager...');
 
       this.stopAutoMessagePlanner();
       this.stopQueueWorker();
@@ -297,16 +303,16 @@ class JobManager {
       this.startQueueWorker();
       await this.startMessageConsumer();
 
-      logger.info("Job manager restarted successfully");
+      logger.info('Job manager restarted successfully');
     } catch (error) {
-      logger.error("Error restarting job manager:", error);
+      logger.error('Error restarting job manager:', error);
       throw error;
     }
   }
 
   async destroy() {
     try {
-      logger.info("Destroying job manager...");
+      logger.info('Destroying job manager...');
 
       if (this.autoMessagePlanner) {
         this.autoMessagePlanner.destroy();
@@ -323,9 +329,9 @@ class JobManager {
       }
 
       this.isInitialized = false;
-      logger.info("Job manager destroyed successfully");
+      logger.info('Job manager destroyed successfully');
     } catch (error) {
-      logger.error("Error destroying job manager:", error);
+      logger.error('Error destroying job manager:', error);
       throw error;
     }
   }

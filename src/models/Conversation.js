@@ -1,43 +1,43 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const conversationSchema = new mongoose.Schema(
   {
     participants: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
+        ref: 'User',
+        required: true
+      }
     ],
     lastMessage: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
+      ref: 'Message'
     },
     lastMessageAt: {
       type: Date,
-      default: Date.now,
+      default: Date.now
     },
     isActive: {
       type: Boolean,
-      default: true,
+      default: true
     },
     conversationType: {
       type: String,
-      enum: ["direct", "group"],
-      default: "direct",
+      enum: ['direct', 'group'],
+      default: 'direct'
     },
     metadata: {
       createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User'
       },
       name: String,
-      description: String,
-    },
+      description: String
+    }
   },
   {
-    timestamps: true,
-  },
+    timestamps: true
+  }
 );
 
 conversationSchema.index({ participants: 1 });
@@ -45,15 +45,15 @@ conversationSchema.index({ lastMessageAt: -1 });
 conversationSchema.index({ isActive: 1 });
 conversationSchema.index({ conversationType: 1 });
 
-conversationSchema.pre("save", function (next) {
-  if (this.conversationType === "direct" && this.participants.length !== 2) {
+conversationSchema.pre('save', function (next) {
+  if (this.conversationType === 'direct' && this.participants.length !== 2) {
     return next(
-      new Error("Direct conversation must have exactly 2 participants"),
+      new Error('Direct conversation must have exactly 2 participants')
     );
   }
-  if (this.conversationType === "group" && this.participants.length < 2) {
+  if (this.conversationType === 'group' && this.participants.length < 2) {
     return next(
-      new Error("Group conversation must have at least 2 participants"),
+      new Error('Group conversation must have at least 2 participants')
     );
   }
   next();
@@ -61,27 +61,27 @@ conversationSchema.pre("save", function (next) {
 
 conversationSchema.statics.findBetweenUsers = function (userId1, userId2) {
   return this.findOne({
-    conversationType: "direct",
+    conversationType: 'direct',
     participants: { $all: [userId1, userId2] },
-    isActive: true,
+    isActive: true
   })
-    .populate("participants", "username email lastSeen")
-    .populate("lastMessage");
+    .populate('participants', 'username email lastSeen')
+    .populate('lastMessage');
 };
 
 conversationSchema.statics.findUserConversations = function (
   userId,
   page = 1,
-  limit = 20,
+  limit = 20
 ) {
   const skip = (page - 1) * limit;
 
   return this.find({
     participants: userId,
-    isActive: true,
+    isActive: true
   })
-    .populate("participants", "username email lastSeen")
-    .populate("lastMessage")
+    .populate('participants', 'username email lastSeen')
+    .populate('lastMessage')
     .sort({ lastMessageAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -106,4 +106,4 @@ conversationSchema.methods.updateLastMessage = function (messageId) {
   return this.save();
 };
 
-module.exports = mongoose.model("Conversation", conversationSchema);
+module.exports = mongoose.model('Conversation', conversationSchema);

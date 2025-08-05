@@ -1,4 +1,4 @@
-const logger = require("./logger");
+const logger = require('./logger');
 
 class SystemMonitor {
   constructor() {
@@ -9,37 +9,37 @@ class SystemMonitor {
         errors: 0,
         byMethod: {},
         byRoute: {},
-        responseTime: [],
+        responseTime: []
       },
       memory: {
         usage: [],
-        maxUsage: 0,
+        maxUsage: 0
       },
       cpu: {
-        usage: [],
+        usage: []
       },
       database: {
         connections: 0,
         queries: 0,
-        errors: 0,
+        errors: 0
       },
       redis: {
         connections: 0,
         operations: 0,
-        errors: 0,
+        errors: 0
       },
       rabbitmq: {
         messages: {
           sent: 0,
           received: 0,
-          failed: 0,
-        },
+          failed: 0
+        }
       },
       sockets: {
         connected: 0,
         events: 0,
-        errors: 0,
-      },
+        errors: 0
+      }
     };
 
     this.alerts = [];
@@ -47,7 +47,7 @@ class SystemMonitor {
       memory: 80,
       cpu: 80,
       responseTime: 5000,
-      errorRate: 10,
+      errorRate: 10
     };
 
     this.isMonitoring = false;
@@ -56,12 +56,12 @@ class SystemMonitor {
 
   start(intervalMs = 30000) {
     if (this.isMonitoring) {
-      logger.warn("System monitoring is already running");
+      logger.warn('System monitoring is already running');
       return;
     }
 
     this.isMonitoring = true;
-    logger.info("Starting system monitoring...");
+    logger.info('Starting system monitoring...');
 
     this.monitoringInterval = setInterval(() => {
       this.collectSystemMetrics();
@@ -74,7 +74,7 @@ class SystemMonitor {
 
   stop() {
     if (!this.isMonitoring) {
-      logger.warn("System monitoring is not running");
+      logger.warn('System monitoring is not running');
       return;
     }
 
@@ -84,7 +84,7 @@ class SystemMonitor {
     }
 
     this.isMonitoring = false;
-    logger.info("System monitoring stopped");
+    logger.info('System monitoring stopped');
   }
 
   collectSystemMetrics() {
@@ -96,7 +96,7 @@ class SystemMonitor {
         timestamp: Date.now(),
         heapUsed: memUsage.heapUsed,
         heapTotal: memUsage.heapTotal,
-        percentage: memPercent,
+        percentage: memPercent
       });
 
       if (memPercent > this.metrics.memory.maxUsage) {
@@ -107,15 +107,15 @@ class SystemMonitor {
       this.metrics.cpu.usage.push({
         timestamp: Date.now(),
         user: cpuUsage.user,
-        system: cpuUsage.system,
+        system: cpuUsage.system
       });
 
-      logger.debug("System metrics collected:", {
+      logger.debug('System metrics collected:', {
         memory: `${memPercent.toFixed(2)}%`,
-        uptime: `${process.uptime()}s`,
+        uptime: `${process.uptime()}s`
       });
     } catch (error) {
-      logger.error("Error collecting system metrics:", error);
+      logger.error('Error collecting system metrics:', error);
     }
   }
 
@@ -135,7 +135,7 @@ class SystemMonitor {
       duration: responseTime,
       method,
       route,
-      statusCode: res.statusCode,
+      statusCode: res.statusCode
     });
 
     if (res.statusCode >= 200 && res.statusCode < 400) {
@@ -162,9 +162,9 @@ class SystemMonitor {
   }
 
   trackRabbitMQ(type, success = true) {
-    if (type === "sent" && success) {
+    if (type === 'sent' && success) {
       this.metrics.rabbitmq.messages.sent++;
-    } else if (type === "received" && success) {
+    } else if (type === 'received' && success) {
       this.metrics.rabbitmq.messages.received++;
     } else {
       this.metrics.rabbitmq.messages.failed++;
@@ -172,26 +172,25 @@ class SystemMonitor {
   }
 
   trackSocket(eventType, count = 1) {
-    if (eventType === "connected") {
+    if (eventType === 'connected') {
       this.metrics.sockets.connected += count;
-    } else if (eventType === "disconnected") {
+    } else if (eventType === 'disconnected') {
       this.metrics.sockets.connected -= count;
-    } else if (eventType === "event") {
+    } else if (eventType === 'event') {
       this.metrics.sockets.events += count;
-    } else if (eventType === "error") {
+    } else if (eventType === 'error') {
       this.metrics.sockets.errors += count;
     }
   }
 
   checkThresholds() {
-    const now = Date.now();
 
     const latestMemory =
       this.metrics.memory.usage[this.metrics.memory.usage.length - 1];
     if (latestMemory && latestMemory.percentage > this.thresholds.memory) {
       this.createAlert(
-        "HIGH_MEMORY_USAGE",
-        `Memory usage: ${latestMemory.percentage.toFixed(2)}%`,
+        'HIGH_MEMORY_USAGE',
+        `Memory usage: ${latestMemory.percentage.toFixed(2)}%`
       );
     }
 
@@ -202,8 +201,8 @@ class SystemMonitor {
         : 0;
     if (errorRate > this.thresholds.errorRate && totalRequests > 10) {
       this.createAlert(
-        "HIGH_ERROR_RATE",
-        `Error rate: ${errorRate.toFixed(2)}%`,
+        'HIGH_ERROR_RATE',
+        `Error rate: ${errorRate.toFixed(2)}%`
       );
     }
 
@@ -214,26 +213,26 @@ class SystemMonitor {
         recentResponses.length;
       if (avgResponseTime > this.thresholds.responseTime) {
         this.createAlert(
-          "SLOW_RESPONSE_TIME",
-          `Average response time: ${avgResponseTime.toFixed(2)}ms`,
+          'SLOW_RESPONSE_TIME',
+          `Average response time: ${avgResponseTime.toFixed(2)}ms`
         );
       }
     }
   }
 
-  createAlert(type, message, severity = "warning") {
+  createAlert(type, message, severity = 'warning') {
     const alert = {
       id: `${type}_${Date.now()}`,
       type,
       message,
       severity,
       timestamp: Date.now(),
-      acknowledged: false,
+      acknowledged: false
     };
 
     this.alerts.push(alert);
 
-    logger.warn("System alert created:", alert);
+    logger.warn('System alert created:', alert);
 
     if (this.alerts.length > 100) {
       this.alerts = this.alerts.slice(-100);
@@ -246,7 +245,7 @@ class SystemMonitor {
     const alert = this.alerts.find((a) => a.id === alertId);
     if (alert) {
       alert.acknowledged = true;
-      logger.info("Alert acknowledged:", alertId);
+      logger.info('Alert acknowledged:', alertId);
       return true;
     }
     return false;
@@ -256,10 +255,10 @@ class SystemMonitor {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
 
     this.metrics.memory.usage = this.metrics.memory.usage.filter(
-      (m) => m.timestamp > cutoff,
+      (m) => m.timestamp > cutoff
     );
     this.metrics.cpu.usage = this.metrics.cpu.usage.filter(
-      (c) => c.timestamp > cutoff,
+      (c) => c.timestamp > cutoff
     );
     this.metrics.requests.responseTime =
       this.metrics.requests.responseTime.filter((r) => r.timestamp > cutoff);
@@ -278,16 +277,16 @@ class SystemMonitor {
         errorRate:
           this.metrics.requests.total > 0
             ? (
-                (this.metrics.requests.errors / this.metrics.requests.total) *
+              (this.metrics.requests.errors / this.metrics.requests.total) *
                 100
-              ).toFixed(2) + "%"
-            : "0%",
+            ).toFixed(2) + '%'
+            : '0%',
         byMethod: this.metrics.requests.byMethod,
-        avgResponseTime: this.getAverageResponseTime(),
+        avgResponseTime: this.getAverageResponseTime()
       },
       memory: {
         current: this.getCurrentMemoryUsage(),
-        max: this.metrics.memory.maxUsage,
+        max: this.metrics.memory.maxUsage
       },
       database: this.metrics.database,
       redis: this.metrics.redis,
@@ -296,32 +295,34 @@ class SystemMonitor {
       alerts: {
         total: this.alerts.length,
         unacknowledged: this.alerts.filter((a) => !a.acknowledged).length,
-        recent: this.alerts.slice(-5),
-      },
+        recent: this.alerts.slice(-5)
+      }
     };
   }
 
   getCurrentMemoryUsage() {
     const memUsage = process.memoryUsage();
     return {
-      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + "MB",
-      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + "MB",
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
       percentage:
-        ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2) + "%",
+        ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2) + '%'
     };
   }
 
   getAverageResponseTime() {
     const recent = this.metrics.requests.responseTime.slice(-100);
-    if (recent.length === 0) return "0ms";
+    if (recent.length === 0) {
+      return '0ms';
+    }
 
     const avg = recent.reduce((sum, r) => sum + r.duration, 0) / recent.length;
-    return Math.round(avg) + "ms";
+    return Math.round(avg) + 'ms';
   }
 
   getAlerts(includeAcknowledged = false) {
     return this.alerts.filter(
-      (alert) => includeAcknowledged || !alert.acknowledged,
+      (alert) => includeAcknowledged || !alert.acknowledged
     );
   }
 
@@ -333,41 +334,41 @@ class SystemMonitor {
         errors: 0,
         byMethod: {},
         byRoute: {},
-        responseTime: [],
+        responseTime: []
       },
       memory: {
         usage: [],
-        maxUsage: 0,
+        maxUsage: 0
       },
       cpu: {
-        usage: [],
+        usage: []
       },
       database: {
         connections: 0,
         queries: 0,
-        errors: 0,
+        errors: 0
       },
       redis: {
         connections: 0,
         operations: 0,
-        errors: 0,
+        errors: 0
       },
       rabbitmq: {
         messages: {
           sent: 0,
           received: 0,
-          failed: 0,
-        },
+          failed: 0
+        }
       },
       sockets: {
         connected: 0,
         events: 0,
-        errors: 0,
-      },
+        errors: 0
+      }
     };
 
     this.alerts = [];
-    logger.info("System metrics reset");
+    logger.info('System metrics reset');
   }
 
   generateHealthReport() {
@@ -375,25 +376,25 @@ class SystemMonitor {
     const memoryUsage = parseFloat(metrics.memory.current.percentage);
     const errorRate = parseFloat(metrics.requests.errorRate);
 
-    let health = "healthy";
-    let issues = [];
+    let health = 'healthy';
+    const issues = [];
 
     if (memoryUsage > this.thresholds.memory) {
-      health = "warning";
+      health = 'warning';
       issues.push(`High memory usage: ${metrics.memory.current.percentage}`);
     }
 
     if (errorRate > this.thresholds.errorRate && metrics.requests.total > 10) {
-      health = "critical";
+      health = 'critical';
       issues.push(`High error rate: ${metrics.requests.errorRate}`);
     }
 
     if (
-      this.alerts.filter((a) => !a.acknowledged && a.severity === "critical")
+      this.alerts.filter((a) => !a.acknowledged && a.severity === 'critical')
         .length > 0
     ) {
-      health = "critical";
-      issues.push("Critical alerts present");
+      health = 'critical';
+      issues.push('Critical alerts present');
     }
 
     return {
@@ -406,10 +407,10 @@ class SystemMonitor {
         requests: {
           total: metrics.requests.total,
           errorRate: metrics.requests.errorRate,
-          avgResponseTime: metrics.requests.avgResponseTime,
+          avgResponseTime: metrics.requests.avgResponseTime
         },
-        alerts: metrics.alerts.unacknowledged,
-      },
+        alerts: metrics.alerts.unacknowledged
+      }
     };
   }
 }
@@ -419,7 +420,7 @@ const systemMonitor = new SystemMonitor();
 const monitoringMiddleware = (req, res, next) => {
   const startTime = Date.now();
 
-  res.on("finish", () => {
+  res.on('finish', () => {
     const responseTime = Date.now() - startTime;
     systemMonitor.trackRequest(req, res, responseTime);
   });
@@ -430,5 +431,5 @@ const monitoringMiddleware = (req, res, next) => {
 module.exports = {
   systemMonitor,
   monitoringMiddleware,
-  SystemMonitor,
+  SystemMonitor
 };

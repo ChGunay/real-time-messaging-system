@@ -3,10 +3,10 @@ const logger = require('../../utils/logger');
 
 class CacheService {
   constructor() {
-    this.DEFAULT_TTL = 3600; 
-    this.CONVERSATION_TTL = 1800; 
-    this.USER_TTL = 900; 
-    this.SESSION_TTL = 86400; 
+    this.DEFAULT_TTL = 3600;
+    this.CONVERSATION_TTL = 1800;
+    this.USER_TTL = 900;
+    this.SESSION_TTL = 86400;
   }
 
   getClient() {
@@ -17,13 +17,13 @@ class CacheService {
     try {
       const client = this.getClient();
       const serializedValue = JSON.stringify(value);
-      
+
       if (ttl > 0) {
         await client.setEx(key, ttl, serializedValue);
       } else {
         await client.set(key, serializedValue);
       }
-      
+
       logger.debug(`Cache set: ${key}`);
       return true;
     } catch (error) {
@@ -36,11 +36,11 @@ class CacheService {
     try {
       const client = this.getClient();
       const value = await client.get(key);
-      
+
       if (value === null) {
         return null;
       }
-      
+
       logger.debug(`Cache hit: ${key}`);
       return JSON.parse(value);
     } catch (error) {
@@ -128,12 +128,12 @@ class CacheService {
       const client = this.getClient();
       const pattern = `messages:${conversationId}:*`;
       const keys = await client.keys(pattern);
-      
+
       if (keys.length > 0) {
         await client.del(keys);
         logger.debug(`Invalidated ${keys.length} message cache entries for conversation ${conversationId}`);
       }
-      
+
       return true;
     } catch (error) {
       logger.error('Error invalidating conversation messages cache:', error);
@@ -146,12 +146,12 @@ class CacheService {
       const client = this.getClient();
       const pattern = `user_conversations:${userId}:*`;
       const keys = await client.keys(pattern);
-      
+
       if (keys.length > 0) {
         await client.del(keys);
         logger.debug(`Invalidated ${keys.length} user conversation cache entries for user ${userId}`);
       }
-      
+
       return true;
     } catch (error) {
       logger.error('Error invalidating user conversations cache:', error);
@@ -172,10 +172,10 @@ class CacheService {
   async getCacheStats() {
     try {
       const client = this.getClient();
-      
+
       const info = await client.info('memory');
       const keyspace = await client.info('keyspace');
-      
+
       return {
         memory: info,
         keyspace: keyspace,

@@ -1,10 +1,10 @@
-const express = require("express");
-const { body, query, validationResult } = require("express-validator");
+const express = require('express');
+const { query, validationResult } = require('express-validator');
 const router = express.Router();
-const auth = require("../middleware/auth");
-const { rateLimiters } = require("../middleware/rateLimiter");
-const { messageSearchService } = require("../services/elasticsearch");
-const logger = require("../utils/logger");
+const auth = require('../middleware/auth');
+const { rateLimiters } = require('../middleware/rateLimiter');
+const { messageSearchService } = require('../services/elasticsearch');
+const logger = require('../utils/logger');
 
 /**
  * @swagger
@@ -129,70 +129,70 @@ const logger = require("../utils/logger");
  */
 
 const searchValidation = [
-  query("q")
+  query('q')
     .optional()
     .isString()
     .isLength({ min: 1, max: 200 })
-    .withMessage("Query must be 1-200 characters"),
-  query("conversationId")
+    .withMessage('Query must be 1-200 characters'),
+  query('conversationId')
     .optional()
     .isMongoId()
-    .withMessage("Invalid conversation ID"),
-  query("senderId").optional().isMongoId().withMessage("Invalid sender ID"),
-  query("messageType")
+    .withMessage('Invalid conversation ID'),
+  query('senderId').optional().isMongoId().withMessage('Invalid sender ID'),
+  query('messageType')
     .optional()
-    .isIn(["text", "auto"])
-    .withMessage("Invalid message type"),
-  query("dateFrom")
-    .optional()
-    .isISO8601()
-    .withMessage("Invalid date format for dateFrom"),
-  query("dateTo")
+    .isIn(['text', 'auto'])
+    .withMessage('Invalid message type'),
+  query('dateFrom')
     .optional()
     .isISO8601()
-    .withMessage("Invalid date format for dateTo"),
-  query("page")
+    .withMessage('Invalid date format for dateFrom'),
+  query('dateTo')
+    .optional()
+    .isISO8601()
+    .withMessage('Invalid date format for dateTo'),
+  query('page')
     .optional()
     .isInt({ min: 1 })
-    .withMessage("Page must be a positive integer"),
-  query("limit")
+    .withMessage('Page must be a positive integer'),
+  query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
-    .withMessage("Limit must be between 1 and 100"),
-  query("sortBy")
+    .withMessage('Limit must be between 1 and 100'),
+  query('sortBy')
     .optional()
-    .isIn(["relevance", "date"])
-    .withMessage("Invalid sort field"),
-  query("sortOrder")
+    .isIn(['relevance', 'date'])
+    .withMessage('Invalid sort field'),
+  query('sortOrder')
     .optional()
-    .isIn(["asc", "desc"])
-    .withMessage("Invalid sort order"),
+    .isIn(['asc', 'desc'])
+    .withMessage('Invalid sort order')
 ];
 
 const suggestionsValidation = [
-  query("prefix")
+  query('prefix')
     .isString()
     .isLength({ min: 1, max: 50 })
-    .withMessage("Prefix must be 1-50 characters"),
-  query("conversationId")
+    .withMessage('Prefix must be 1-50 characters'),
+  query('conversationId')
     .optional()
     .isMongoId()
-    .withMessage("Invalid conversation ID"),
-  query("limit")
+    .withMessage('Invalid conversation ID'),
+  query('limit')
     .optional()
     .isInt({ min: 1, max: 20 })
-    .withMessage("Limit must be between 1 and 20"),
+    .withMessage('Limit must be between 1 and 20')
 ];
 
 const statisticsValidation = [
-  query("period")
+  query('period')
     .optional()
-    .isIn(["day", "week", "month", "year"])
-    .withMessage("Invalid period"),
-  query("conversationId")
+    .isIn(['day', 'week', 'month', 'year'])
+    .withMessage('Invalid period'),
+  query('conversationId')
     .optional()
     .isMongoId()
-    .withMessage("Invalid conversation ID"),
+    .withMessage('Invalid conversation ID')
 ];
 
 /**
@@ -314,7 +314,7 @@ const statisticsValidation = [
  *               $ref: '#/components/responses/InternalServerError'
  */
 router.get(
-  "/messages",
+  '/messages',
   auth.authenticate,
   rateLimiters.search,
   searchValidation,
@@ -324,8 +324,8 @@ router.get(
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: "Validation failed",
-          errors: errors.array(),
+          message: 'Validation failed',
+          errors: errors.array()
         });
       }
 
@@ -339,26 +339,26 @@ router.get(
         dateTo: req.query.dateTo,
         page: parseInt(req.query.page) || 1,
         limit: parseInt(req.query.limit) || 20,
-        sortBy: req.query.sortBy || "relevance",
-        sortOrder: req.query.sortOrder || "desc",
+        sortBy: req.query.sortBy || 'relevance',
+        sortOrder: req.query.sortOrder || 'desc'
       };
 
       const results = await messageSearchService.searchMessages(searchOptions);
 
       res.json({
         success: true,
-        data: results,
+        data: results
       });
     } catch (error) {
-      logger.error("Search messages error:", error);
+      logger.error('Search messages error:', error);
       res.status(500).json({
         success: false,
-        message: "Search operation failed",
+        message: 'Search operation failed',
         error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
+          process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
-  },
+  }
 );
 
 /**
@@ -429,7 +429,7 @@ router.get(
  *               $ref: '#/components/responses/InternalServerError'
  */
 router.get(
-  "/suggestions",
+  '/suggestions',
   auth.authenticate,
   rateLimiters.search,
   suggestionsValidation,
@@ -439,8 +439,8 @@ router.get(
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: "Validation failed",
-          errors: errors.array(),
+          message: 'Validation failed',
+          errors: errors.array()
         });
       }
 
@@ -448,7 +448,7 @@ router.get(
         prefix: req.query.prefix,
         conversationId: req.query.conversationId,
         userId: req.user.id,
-        limit: parseInt(req.query.limit) || 5,
+        limit: parseInt(req.query.limit) || 5
       };
 
       const suggestions = await messageSearchService.getSuggestions(options);
@@ -457,19 +457,19 @@ router.get(
         success: true,
         data: {
           suggestions,
-          query: req.query.prefix,
-        },
+          query: req.query.prefix
+        }
       });
     } catch (error) {
-      logger.error("Get suggestions error:", error);
+      logger.error('Get suggestions error:', error);
       res.status(500).json({
         success: false,
-        message: "Failed to get suggestions",
+        message: 'Failed to get suggestions',
         error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
+          process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
-  },
+  }
 );
 
 /**
@@ -530,7 +530,7 @@ router.get(
  *               $ref: '#/components/responses/InternalServerError'
  */
 router.get(
-  "/statistics",
+  '/statistics',
   auth.authenticate,
   rateLimiters.search,
   statisticsValidation,
@@ -540,33 +540,33 @@ router.get(
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: "Validation failed",
-          errors: errors.array(),
+          message: 'Validation failed',
+          errors: errors.array()
         });
       }
 
       const options = {
-        period: req.query.period || "month",
+        period: req.query.period || 'month',
         conversationId: req.query.conversationId,
-        userId: req.user.id,
+        userId: req.user.id
       };
 
       const statistics = await messageSearchService.getStatistics(options);
 
       res.json({
         success: true,
-        data: statistics,
+        data: statistics
       });
     } catch (error) {
-      logger.error("Get statistics error:", error);
+      logger.error('Get statistics error:', error);
       res.status(500).json({
         success: false,
-        message: "Failed to get statistics",
+        message: 'Failed to get statistics',
         error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
+          process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
-  },
+  }
 );
 
 module.exports = router;

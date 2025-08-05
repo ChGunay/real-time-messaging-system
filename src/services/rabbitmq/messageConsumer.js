@@ -7,7 +7,7 @@ class MessageConsumer {
   constructor() {
     this.isConsuming = false;
     this.maxRetries = 3;
-    this.retryDelay = 5000; 
+    this.retryDelay = 5000;
   }
 
   getConsumerChannel() {
@@ -37,33 +37,29 @@ class MessageConsumer {
           logger.debug('Processing message from queue:', messageData);
 
           await this.processMessage(messageData);
-          
-          
+
           channel.ack(msg);
-          
+
         } catch (error) {
           logger.error('Error processing message:', error);
-          
-          
+
           const retryCount = this.getRetryCount(msg);
-          
+
           if (retryCount < this.maxRetries) {
             logger.info(`Retrying message (attempt ${retryCount + 1}/${this.maxRetries})`);
-            
-            
+
             setTimeout(() => {
               channel.nack(msg, false, true);
             }, this.retryDelay);
           } else {
             logger.error('Max retries reached, sending to dead letter queue');
-            
-            
+
             await this.sendToDeadLetterQueue(messageData, error.message);
             channel.ack(msg);
           }
         }
       }, {
-        noAck: false 
+        noAck: false
       });
 
       this.isConsuming = true;
@@ -94,9 +90,8 @@ class MessageConsumer {
 
       logger.info(`Processing auto message: ${autoMessageId} from ${senderId} to ${receiverId}`);
 
-      
       let conversation = await Conversation.findBetweenUsers(senderId, receiverId);
-      
+
       if (!conversation) {
         conversation = new Conversation({
           participants: [senderId, receiverId],
@@ -109,7 +104,6 @@ class MessageConsumer {
         logger.debug(`Created new conversation: ${conversation._id}`);
       }
 
-      
       const message = new Message({
         conversation: conversation._id,
         sender: senderId,
@@ -121,10 +115,8 @@ class MessageConsumer {
       await message.save();
       logger.debug(`Created message: ${message._id}`);
 
-      
       await conversation.updateLastMessage(message._id);
 
-      
       await AutoMessage.findByIdAndUpdate(autoMessageId, {
         isSent: true,
         sentAt: new Date(),
@@ -132,7 +124,6 @@ class MessageConsumer {
         conversationId: conversation._id
       });
 
-      
       await this.sendRealtimeNotification(receiverId, {
         type: 'message_received',
         message: {
@@ -155,7 +146,6 @@ class MessageConsumer {
 
     } catch (error) {
       logger.error('Error processing auto message:', error);
-      
 
       if (payload.autoMessageId) {
         try {
@@ -167,28 +157,27 @@ class MessageConsumer {
           logger.error('Error updating AutoMessage with error:', updateError);
         }
       }
-      
+
       throw error;
     }
   }
 
   async sendRealtimeNotification(userId, notificationData) {
     try {
-      
+
       const isOnline = await userOnlineService.isUserOnline(userId);
-      
+
       if (!isOnline) {
         logger.debug(`User ${userId} is offline, skipping real-time notification`);
         return;
       }
 
-      
       const io = global.socketIO;
-      
+
       if (io) {
-        
+
         const socketId = await userOnlineService.getUserSocketId(userId);
-        
+
         if (socketId) {
           io.to(socketId).emit('message_received', notificationData);
           logger.debug(`Real-time notification sent to user ${userId}`);
@@ -201,7 +190,7 @@ class MessageConsumer {
 
     } catch (error) {
       logger.error('Error sending real-time notification:', error);
-      
+
     }
   }
 
@@ -209,7 +198,7 @@ class MessageConsumer {
     try {
       const channel = this.getConsumerChannel();
       const deadLetterQueue = 'failed_messages_dlq';
-      
+
       const failedMessage = {
         originalMessage: messageData,
         error: errorMessage,
@@ -218,7 +207,7 @@ class MessageConsumer {
       };
 
       const messageBuffer = Buffer.from(JSON.stringify(failedMessage));
-      
+
       channel.sendToQueue(deadLetterQueue, messageBuffer, {
         persistent: true,
         timestamp: Date.now()
@@ -247,8 +236,8 @@ class MessageConsumer {
       }
 
       const channel = this.getConsumerChannel();
-      await channel.cancel(); 
-      
+      await channel.cancel();
+
       this.isConsuming = false;
       logger.info('Message consumer stopped');
 
@@ -262,7 +251,7 @@ class MessageConsumer {
     try {
       const queueName = process.env.MESSAGE_SENDING_QUEUE || 'message_sending_queue';
       const stats = await rabbitMQConnection.getQueueStats(queueName);
-      
+
       return {
         queueName,
         messageCount: stats ? stats.messageCount : 0,
@@ -280,12 +269,11 @@ class MessageConsumer {
     }
   }
 
-    
   async healthCheck() {
     try {
       const isHealthy = rabbitMQConnection.isHealthy() && this.isConsuming;
       const stats = await this.getConsumerStats();
-      
+
       return {
         isHealthy,
         isConsuming: this.isConsuming,

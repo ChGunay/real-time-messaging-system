@@ -1,5 +1,5 @@
-const amqp = require("amqplib");
-const logger = require("../utils/logger");
+const amqp = require('amqplib');
+const logger = require('../utils/logger');
 
 class RabbitMQConnection {
   constructor() {
@@ -15,13 +15,13 @@ class RabbitMQConnection {
 
   async connect() {
     try {
-      const url = process.env.RABBITMQ_URL || "amqp://localhost:5672";
+      const url = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
 
       this.connection = await amqp.connect(url);
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
-      logger.info("RabbitMQ connection established");
+      logger.info('RabbitMQ connection established');
 
       this.channel = await this.connection.createChannel();
       this.consumerChannel = await this.connection.createChannel();
@@ -29,32 +29,32 @@ class RabbitMQConnection {
 
       await this.consumerChannel.prefetch(1);
 
-      this.connection.on("error", (err) => {
-        logger.error("RabbitMQ connection error:", err);
+      this.connection.on('error', (err) => {
+        logger.error('RabbitMQ connection error:', err);
         this.isConnected = false;
       });
 
-      this.connection.on("close", () => {
-        logger.warn("RabbitMQ connection closed");
+      this.connection.on('close', () => {
+        logger.warn('RabbitMQ connection closed');
         this.isConnected = false;
         this.handleReconnect();
       });
 
-      this.channel.on("error", (err) => {
-        logger.error("RabbitMQ channel error:", err);
+      this.channel.on('error', (err) => {
+        logger.error('RabbitMQ channel error:', err);
       });
 
-      this.channel.on("close", () => {
-        logger.warn("RabbitMQ channel closed");
+      this.channel.on('close', () => {
+        logger.warn('RabbitMQ channel closed');
       });
 
       await this.setupQueuesAndExchanges();
 
-      logger.info("RabbitMQ setup completed successfully");
+      logger.info('RabbitMQ setup completed successfully');
 
       return true;
     } catch (error) {
-      logger.error("RabbitMQ connection failed:", error);
+      logger.error('RabbitMQ connection failed:', error);
       this.isConnected = false;
       await this.handleReconnect();
       throw error;
@@ -63,20 +63,20 @@ class RabbitMQConnection {
 
   async handleReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      logger.error("Max RabbitMQ reconnection attempts reached");
+      logger.error('Max RabbitMQ reconnection attempts reached');
       return;
     }
 
     this.reconnectAttempts++;
     logger.info(
-      `Attempting to reconnect to RabbitMQ (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+      `Attempting to reconnect to RabbitMQ (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`
     );
 
     setTimeout(async () => {
       try {
         await this.connect();
       } catch (error) {
-        logger.error("RabbitMQ reconnection failed:", error);
+        logger.error('RabbitMQ reconnection failed:', error);
       }
     }, this.reconnectDelay);
   }
@@ -84,34 +84,34 @@ class RabbitMQConnection {
   async setupQueuesAndExchanges() {
     try {
       const messageSendingQueue =
-        process.env.MESSAGE_SENDING_QUEUE || "message_sending_queue";
+        process.env.MESSAGE_SENDING_QUEUE || 'message_sending_queue';
 
       await this.channel.assertQueue(messageSendingQueue, {
         durable: true,
         arguments: {
-          "x-message-ttl": 3600000,
-          "x-max-retries": 3,
-        },
+          'x-message-ttl': 3600000,
+          'x-max-retries': 3
+        }
       });
 
-      const deadLetterQueue = "failed_messages_dlq";
+      const deadLetterQueue = 'failed_messages_dlq';
       await this.channel.assertQueue(deadLetterQueue, {
-        durable: true,
+        durable: true
       });
 
-      const realtimeExchange = "realtime_messages";
-      await this.channel.assertExchange(realtimeExchange, "topic", {
-        durable: true,
+      const realtimeExchange = 'realtime_messages';
+      await this.channel.assertExchange(realtimeExchange, 'topic', {
+        durable: true
       });
 
-      const notificationExchange = "notifications";
-      await this.channel.assertExchange(notificationExchange, "fanout", {
-        durable: true,
+      const notificationExchange = 'notifications';
+      await this.channel.assertExchange(notificationExchange, 'fanout', {
+        durable: true
       });
 
-      logger.info("RabbitMQ queues and exchanges setup completed");
+      logger.info('RabbitMQ queues and exchanges setup completed');
     } catch (error) {
-      logger.error("Error setting up queues and exchanges:", error);
+      logger.error('Error setting up queues and exchanges:', error);
       throw error;
     }
   }
@@ -139,15 +139,15 @@ class RabbitMQConnection {
       }
 
       this.isConnected = false;
-      logger.info("RabbitMQ connection closed");
+      logger.info('RabbitMQ connection closed');
     } catch (error) {
-      logger.error("Error closing RabbitMQ connection:", error);
+      logger.error('Error closing RabbitMQ connection:', error);
     }
   }
 
   getChannel() {
     if (!this.isConnected || !this.channel) {
-      throw new Error("RabbitMQ not connected or channel not available");
+      throw new Error('RabbitMQ not connected or channel not available');
     }
     return this.channel;
   }
@@ -155,7 +155,7 @@ class RabbitMQConnection {
   getConsumerChannel() {
     if (!this.isConnected || !this.consumerChannel) {
       throw new Error(
-        "RabbitMQ not connected or consumer channel not available",
+        'RabbitMQ not connected or consumer channel not available'
       );
     }
     return this.consumerChannel;
@@ -164,7 +164,7 @@ class RabbitMQConnection {
   getPublisherChannel() {
     if (!this.isConnected || !this.publisherChannel) {
       throw new Error(
-        "RabbitMQ not connected or publisher channel not available",
+        'RabbitMQ not connected or publisher channel not available'
       );
     }
     return this.publisherChannel;
@@ -181,17 +181,17 @@ class RabbitMQConnection {
   async getQueueStats(queueName) {
     try {
       if (!this.isConnected) {
-        throw new Error("RabbitMQ not connected");
+        throw new Error('RabbitMQ not connected');
       }
 
       const queueInfo = await this.channel.checkQueue(queueName);
       return {
         queue: queueName,
         messageCount: queueInfo.messageCount,
-        consumerCount: queueInfo.consumerCount,
+        consumerCount: queueInfo.consumerCount
       };
     } catch (error) {
-      logger.error("Error getting queue stats:", error);
+      logger.error('Error getting queue stats:', error);
       return null;
     }
   }
@@ -199,12 +199,12 @@ class RabbitMQConnection {
 
 const rabbitMQConnection = new RabbitMQConnection();
 
-process.on("SIGINT", async () => {
+process.on('SIGINT', async () => {
   await rabbitMQConnection.disconnect();
   process.exit(0);
 });
 
-process.on("SIGTERM", async () => {
+process.on('SIGTERM', async () => {
   await rabbitMQConnection.disconnect();
   process.exit(0);
 });
