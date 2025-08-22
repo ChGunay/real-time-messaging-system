@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat Client</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .block { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+    input, button, textarea { margin: 5px 0; padding: 6px 8px; }
+    textarea { width: 100%; }
+    .messages, .logs { max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+    .msg { margin: 5px 0; }
+    .status { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
