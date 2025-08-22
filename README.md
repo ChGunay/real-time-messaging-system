@@ -51,6 +51,19 @@ Production-ready real-time messaging system developed for Nodelabs Backend Devel
    npm start      # Production
    ```
 
+## 🌐 Frontend Client
+
+A lightweight Vue.js client is available in the `frontend/` directory.
+
+Serve the folder with any static server:
+
+```bash
+python3 -m http.server 8080
+# then visit http://localhost:8080/frontend/index.html
+```
+
+The client allows registration, login, joining conversations, and sending messages over Socket.IO.
+
 ## 📖 API Documentation
 
 - **Swagger UI**: http://localhost:3000/api-docs

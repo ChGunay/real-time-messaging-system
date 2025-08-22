@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real-Time Messaging Client</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>Messaging Client</h1>
+
+        <!-- Authentication -->
+        <section v-if="!token" class="card">
+            <h2>Authentication</h2>
+            <input v-model="username" placeholder="Username" />
+            <input v-model="email" type="email" placeholder="Email" />
+            <input v-model="password" type="password" placeholder="Password" />
+            <div>
+                <button @click="register">Register</button>
+                <button @click="login">Login</button>
+            </div>
+            <p class="error" v-if="authError">{{ authError }}</p>
+        </section>
+
+        <!-- Main App -->
+        <section v-else class="card">
+            <div class="flex-row">
+                <div>
+                    <button @click="disconnect">Logout</button>
+                </div>
+                <div>
+                    <button v-if="!isConnected" @click="connectSocket">Connect Socket</button>
+                    <button v-else @click="disconnectSocket">Disconnect Socket</button>
+                </div>
+                <div>Status: {{ socketStatus }}</div>
+            </div>
+
+            <div class="flex-row">
+                <input v-model="conversationId" placeholder="Conversation ID" />
+                <button @click="joinRoom">Join</button>
+                <button @click="createConversation">Create</button>
+            </div>
+
+            <div class="messages">
+                <div v-for="(msg, idx) in messages" :key="idx" class="message">
+                    <strong>{{ msg.sender }}</strong>: {{ msg.content }}
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <textarea v-model="messageContent" placeholder="Type a message"></textarea>
+                <button @click="sendMessage">Send</button>
+            </div>
+        </section>
+
+        <!-- Logs -->
+        <section class="card">
+            <h2>Logs</h2>
+            <div class="logs">
+                <div v-for="(logItem, idx) in logs" :key="idx" :class="logItem.type">
+                    {{ logItem.time }} - {{ logItem.message }}
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
